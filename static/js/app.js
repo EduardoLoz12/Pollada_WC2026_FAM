@@ -363,7 +363,7 @@ function showJoinModal() {
   _existingParticipant = null;
   document.getElementById("join-modal").classList.remove("hidden");
   document.getElementById("input-name").value = "";
-  document.getElementById("input-code").value = "";
+  document.getElementById("input-code").value = FAMILY_CODE;
   document.getElementById("error-msg").style.display = "none";
   showStep(1);
   buildAvatarPicker();  // rebuild with current taken list
