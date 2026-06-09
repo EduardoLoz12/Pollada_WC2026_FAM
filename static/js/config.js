@@ -58,18 +58,27 @@ window.FLAG = {
   "Albania":"🇦🇱","Turkey":"🇹🇷","Greece":"🇬🇷","Slovenia":"🇸🇮",
   "Bosnia and Herzegovina":"🇧🇦","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
   "Israel":"🇮🇱","Curaçao":"🇨🇼","Suriname":"🇸🇷","Cuba":"🇨🇺",
-  // football-data.org name variants
+  // WC2026 exact names from football-data.org
+  "Bosnia-Herzegovina":"🇧🇦",
+  "Cape Verde Islands":"🇨🇻",
+  "Congo DR":"🇨🇩",
+  "Czechia":"🇨🇿",
+  "Norway":"🇳🇴",
+  "Sweden":"🇸🇪",
+  "Algeria":"🇩🇿",
+  "Tunisia":"🇹🇳",
+  // other football-data.org variants
   "Korea Republic":"🇰🇷","IR Iran":"🇮🇷","Türkiye":"🇹🇷",
-  "China PR":"🇨🇳","Chinese Taipei":"🇨🇳","Hong Kong":"🇭🇰",
-  "USA":"🇺🇸","CAN":"🇨🇦","MEX":"🇲🇽",
-  "Republic of Ireland":"🇮🇪","Northern Ireland":"🇬🇧",
-  "Congo DR":"🇨🇩","Tanzania":"🇹🇿","Zambia":"🇿🇲","Zimbabwe":"🇿🇼",
-  "Cape Verde":"🇨🇻","Tunisia":"🇹🇳","Algeria":"🇩🇿","Benin":"🇧🇯",
+  "China PR":"🇨🇳","Chinese Taipei":"🇨🇳",
+  "Cape Verde":"🇨🇻","Benin":"🇧🇯",
   "Comoros":"🇰🇲","Equatorial Guinea":"🇬🇶","Guinea":"🇬🇳",
   "New Caledonia":"🇳🇨","Papua New Guinea":"🇵🇬","Tahiti":"🇵🇫",
-  "Afghanistan":"🇦🇫","Kyrgyzstan":"🇰🇬","Myanmar":"🇲🇲",
-  "Philippines":"🇵🇭","Singapore":"🇸🇬","Thailand":"🇹🇭",
-  "Vietnam":"🇻🇳","Yemen":"🇾🇪","Kuwait":"🇰🇼","Oman":"🇴🇲",
+  "Philippines":"🇵🇭","Thailand":"🇹🇭","Vietnam":"🇻🇳",
+  "Kuwait":"🇰🇼","Oman":"🇴🇲","Yemen":"🇾🇪",
+  "Republic of Ireland":"🇮🇪",
+  "Tanzania":"🇹🇿","Zambia":"🇿🇲","Zimbabwe":"🇿🇼",
+  "Finland":"🇫🇮","Slovakia":"🇸🇰","Slovenia":"🇸🇮",
+  "Iceland":"🇮🇸","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿",
 };
 
 window.STAGE_LABEL = {
