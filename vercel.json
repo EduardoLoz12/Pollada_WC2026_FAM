@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/*.py": { "runtime": "python3.12" }
+  },
+  "rewrites": [
+    { "source": "/api/refresh", "destination": "/api/refresh.py" },
+    { "source": "/api/join",    "destination": "/api/join.py" },
+    { "source": "/api/export",  "destination": "/api/export.py" }
+  ]
+}

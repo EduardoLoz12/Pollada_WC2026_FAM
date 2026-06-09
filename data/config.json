@@ -1,0 +1,18 @@
+{
+  "points": {
+    "correct_result": 2,
+    "exact_score_bonus": 3,
+    "knockout_qualifier": 3,
+    "champion": 10,
+    "runner_up": 5,
+    "top_scorer": 5
+  },
+  "phases": [
+    {"id": "GROUP_STAGE",   "label": "Fase de Grupos",   "form_open": true},
+    {"id": "ROUND_OF_32",   "label": "Ronda de 32",      "form_open": false},
+    {"id": "ROUND_OF_16",   "label": "Octavos de Final", "form_open": false},
+    {"id": "QUARTER_FINALS","label": "Cuartos de Final", "form_open": false},
+    {"id": "SEMI_FINALS",   "label": "Semifinales",      "form_open": false},
+    {"id": "FINAL",         "label": "Final",            "form_open": false}
+  ]
+}

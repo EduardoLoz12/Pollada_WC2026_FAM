@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+  <title>🏆 Polla Mundialera 2026 · Familia Lozada Vargas</title>
+  <link rel="stylesheet" href="static/css/style.css">
+  <!-- Supabase JS client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header>
+  <span class="header-trophy">🏆</span>
+  <h1>Polla Mundialera 2026</h1>
+  <p class="header-family">Familia Lozada Vargas</p>
+  <div id="countdown"></div>
+  <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
+</header>
+
+<!-- ══════════════════ TABS ══════════════════ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="tabla"      onclick="showTab('tabla')">🏅 Tabla</button>
+  <button class="tab"        data-tab="partidos"   onclick="showTab('partidos')">📅 Partidos</button>
+  <button class="tab"        data-tab="grupos"     onclick="showTab('grupos')">📊 Grupos</button>
+  <button class="tab"        data-tab="goleadores" onclick="showTab('goleadores')">⚽ Goles</button>
+</nav>
+
+<!-- ══════════════════ TABLA FAMILIAR ══════════════════ -->
+<section id="tab-tabla" class="tab-content active">
+  <div class="section-title">🏆 Clasificación Familiar</div>
+  <div id="leaderboard-list" class="loading">Cargando tabla...</div>
+</section>
+
+<!-- ══════════════════ PARTIDOS ══════════════════ -->
+<section id="tab-partidos" class="tab-content">
+  <div class="section-title">📅 Partidos</div>
+  <div id="phase-filter"></div>
+  <div id="matches-list" class="loading">Cargando partidos...</div>
+</section>
+
+<!-- ══════════════════ GRUPOS ══════════════════ -->
+<section id="tab-grupos" class="tab-content">
+  <div class="section-title">📊 Posiciones por Grupo</div>
+  <div id="groups-list" class="loading">Cargando posiciones...</div>
+</section>
+
+<!-- ══════════════════ GOLEADORES ══════════════════ -->
+<section id="tab-goleadores" class="tab-content">
+  <div class="section-title">⚽ Goleadores del Torneo</div>
+  <div id="scorers-list" class="loading">Cargando goleadores...</div>
+</section>
+
+<!-- ══════════════════ JOIN MODAL ══════════════════ -->
+<div id="join-modal" class="modal-backdrop hidden" onclick="handleBackdropClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+
+    <!-- Step indicators -->
+    <div class="step-indicator">
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
+    </div>
+
+    <!-- ─── Step 1: Info ─────────────────────── -->
+    <div id="step-1">
+      <h2>👋 Únete a la Polla</h2>
+      <p class="hint">¡Solo toma 2 minutos! Llena tus datos y pronósticos.</p>
+
+      <label>Tu nombre</label>
+      <input id="input-name" type="text" placeholder="¿Cómo te llaman?" maxlength="30" autocomplete="off">
+
+      <label>Elige tu avatar</label>
+      <div class="avatar-grid" id="avatar-grid"></div>
+
+      <label>Código familiar</label>
+      <input id="input-code" type="text" placeholder="Pregúntale a Eduardo 😄" autocomplete="off">
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <button class="btn-primary" onclick="nextStep()">Siguiente → Mis pronósticos</button>
+    </div>
+
+    <!-- ─── Step 2: Predictions ──────────────── -->
+    <div id="step-2" style="display:none">
+      <h2>📋 Mis Pronósticos</h2>
+      <p class="hint">Selecciona quién gana cada partido. El marcador exacto vale <strong style="color:var(--gold)">+3 pts</strong> extra.</p>
+
+      <div id="predictions-form"></div>
+
+      <hr class="divider">
+
+      <div class="special-section">
+        <h3>🌟 Apuestas Especiales</h3>
+        <p class="hint" style="margin-top:4px">Bonus de puntos al final del torneo</p>
+
+        <label>🏆 Campeón del Mundo <small style="color:var(--gold)">(10 pts)</small></label>
+        <input id="special-champion" type="text" placeholder="País campeón" list="teams-list" autocomplete="off">
+
+        <label>🥈 Subcampeón <small style="color:var(--muted)">(5 pts)</small></label>
+        <input id="special-runner" type="text" placeholder="País subcampeón" list="teams-list" autocomplete="off">
+
+        <label>⚽ Goleador del Torneo <small style="color:var(--muted)">(5 pts)</small></label>
+        <input id="special-scorer" type="text" placeholder="Nombre del jugador" autocomplete="off">
+
+        <datalist id="teams-list"></datalist>
+      </div>
+
+      <div class="error-msg" id="error-msg-2"></div>
+
+      <button id="btn-submit" class="btn-primary" onclick="submitPredictions()">
+        ✅ Guardar mis pronósticos
+      </button>
+      <button class="btn-secondary" onclick="showStep(1)">← Atrás</button>
+    </div>
+
+    <!-- ─── Step 3: Success ──────────────────── -->
+    <div id="step-3" style="display:none">
+      <div class="success-box">
+        <span class="big-emoji">🎉</span>
+        <h3>¡Ya estás en la polla!</h3>
+        <p id="success-msg"></p>
+      </div>
+      <button class="btn-primary" onclick="hideJoinModal(); showTab('tabla')">
+        🏅 Ver la tabla familiar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="static/js/config.js"></script>
+<script src="static/js/app.js"></script>
+<script>
+  // Close modal when clicking backdrop
+  function handleBackdropClick(e) {
+    if (e.target.id === "join-modal") hideJoinModal();
+  }
+</script>
+
+</body>
+</html>
