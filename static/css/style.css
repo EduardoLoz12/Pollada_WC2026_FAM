@@ -291,7 +291,12 @@ header h1 {
   text-align: right;
 }
 
-.team-flag { font-size: 1.4rem; }
+.team-flag { font-size: 1.4rem; line-height: 1; }
+.team-flag img.emoji,
+.group-table img.emoji,
+.scorer-name img.emoji,
+.pred-match-teams img.emoji,
+.pred-btn img.emoji { height: 1.3em; width: 1.3em; vertical-align: -0.2em; display: inline-block; }
 
 .team-name {
   font-size: .82rem;

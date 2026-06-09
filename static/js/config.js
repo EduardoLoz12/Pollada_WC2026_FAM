@@ -18,22 +18,20 @@ window.POINTS = {
 // ─── First WC match (Colombia time UTC-5) ────────────────────────────────────
 window.WC_START = new Date("2026-06-11T19:00:00-05:00");
 
-// ─── Available emojis for avatar picker ──────────────────────────────────────
+// ─── Available emojis for avatar picker (no flags — use fun emojis only) ─────
 window.AVATARS = [
-  // Americas
-  "🇨🇴","🇦🇷","🇧🇷","🇲🇽","🇺🇸","🇨🇦","🇪🇨","🇵🇪",
-  "🇺🇾","🇨🇱","🇵🇦","🇨🇷","🇵🇾","🇧🇴","🇻🇪","🇯🇲",
-  // Europa/África/Asia
-  "🇪🇸","🇩🇪","🇫🇷","🇵🇹","🇳🇱","🇧🇪","🇮🇹","🇨🇭",
-  "🇬🇧","🇦🇺","🇯🇵","🇰🇷","🇲🇦","🇳🇬","🇸🇦","🇩🇰",
   // Trofeos y deportes
   "🏆","🥇","🥈","🥉","🎯","⚽","🏅","🎖️",
   // Fuego y poder
   "🔥","⭐","💪","👑","⚡","💎","🌟","🚀",
-  // Personajes y animales
-  "🦁","🐯","🦅","🐉","🦊","🐺","🦸","🤴",
-  // Caras
-  "😎","🤩","😤","🤠","🫡","🥵","👸","🧙",
+  // Animales
+  "🦁","🐯","🦅","🐉","🦊","🐺","🦄","🐻",
+  // Caras expresivas
+  "😎","🤩","😤","🤠","🫡","🥵","😈","🤑",
+  // Personajes
+  "🤴","👸","🧙","🦸","🕵️","🥷","🧛","🤡",
+  // Extra divertidos
+  "🍀","🎪","🎸","🏋️","⚔️","🛡️","🎭","🧠",
 ];
 
 // ─── Country → flag emoji lookup ─────────────────────────────────────────────

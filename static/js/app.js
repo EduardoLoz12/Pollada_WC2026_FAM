@@ -209,7 +209,6 @@ function renderMatchList() {
     return;
   }
 
-  // Group by date (Colombia time)
   const byDate = {};
   for (const m of matches) {
     const date = m.kickoff_utc ? toColDate(m.kickoff_utc) : "Fecha TBD";
@@ -221,6 +220,7 @@ function renderMatchList() {
     <div class="match-day-label">${date}</div>
     ${ms.map(m => matchCard(m)).join("")}
   `).join("");
+  applyTwemoji("matches-list");
 }
 
 function matchCard(m) {
@@ -329,6 +329,7 @@ async function renderGroups() {
         </table>
       </div>`;
     }).join("");
+  applyTwemoji("groups-list");
 }
 
 // ─── Scorers ──────────────────────────────────────────────────────────────
@@ -352,6 +353,7 @@ async function renderScorers() {
       <div class="scorer-goals">${s.goals}<small>goles</small></div>
     </div>
   `).join("");
+  applyTwemoji("scorers-list");
 }
 
 // ─── Join modal ───────────────────────────────────────────────────────────
@@ -494,6 +496,7 @@ function buildPredictionsForm() {
       <div class="pred-group-body">${matches.map(m => predMatchRow(m)).join("")}</div>
     </div>`;
   }
+  applyTwemoji("predictions-form");
 }
 
 function toggleGroup(header) {
@@ -679,6 +682,12 @@ function toColTime(utcStr) {
 function esc(str) {
   if (!str) return "";
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function applyTwemoji(elId) {
+  if (!window.twemoji) return;
+  const el = document.getElementById(elId);
+  if (el) twemoji.parse(el);
 }
 
 function showError(msg) {
