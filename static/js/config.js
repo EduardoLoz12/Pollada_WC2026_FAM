@@ -12,6 +12,7 @@ window.POINTS = {
   knockout_bonus:    3,
   champion:         10,
   runner_up:         5,
+  third_place:       5,
   top_scorer:        5,
 };
 

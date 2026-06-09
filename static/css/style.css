@@ -14,7 +14,7 @@
   --red:     #e74c3c;
   --blue:    #3498db;
   --text:    #e8f0fe;
-  --muted:   #7b8db5;
+  --muted:   #9aacd1;
   --font:    'Segoe UI', system-ui, -apple-system, sans-serif;
   --radius:  12px;
 }
@@ -80,6 +80,13 @@ header h1 {
   color: var(--gold2);
 }
 
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn-join {
   background: linear-gradient(135deg, var(--gold), #e8920e);
   border: none;
@@ -97,6 +104,23 @@ header h1 {
 }
 
 .btn-join:active { transform: scale(.97); }
+
+.btn-mypreds {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  padding: 8px 22px;
+  width: 100%;
+  max-width: 320px;
+  transition: border-color .12s, transform .12s;
+}
+
+.btn-mypreds:active { transform: scale(.97); border-color: var(--gold); }
 
 /* ─── Tabs ────────────────────────────────────────────────────────────── */
 .tabs {
@@ -216,10 +240,22 @@ header h1 {
 }
 
 .player-sub {
-  font-size: .75rem;
+  font-size: .82rem;
   color: var(--muted);
   margin-top: 2px;
 }
+
+.player-tag {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .3px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+.player-tag.lead   { background: rgba(245,166,35,.18); color: var(--gold2); }
+.player-tag.last   { background: rgba(123,141,181,.18); color: var(--muted); }
 
 .points {
   font-size: 1.6rem;
@@ -237,9 +273,21 @@ header h1 {
 }
 
 /* Top 3 glow */
-.rank-1 { border-color: #f5a623; box-shadow: 0 0 12px rgba(245,166,35,.2); }
+.rank-1 {
+  border-color: #f5a623;
+  box-shadow: 0 0 16px rgba(245,166,35,.35);
+  background: linear-gradient(135deg, rgba(245,166,35,.10), var(--card) 60%);
+  animation: leader-glow 2.4s ease-in-out infinite;
+}
 .rank-2 { border-color: #a0a0a0; box-shadow: 0 0 8px rgba(160,160,160,.15); }
 .rank-3 { border-color: #cd7f32; box-shadow: 0 0 8px rgba(205,127,50,.15); }
+
+@keyframes leader-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(245,166,35,.25); }
+  50%      { box-shadow: 0 0 22px rgba(245,166,35,.5); }
+}
+
+.rank-1 .rank { font-size: 1.6rem; }
 
 /* ─── Match cards ──────────────────────────────────────────────────────── */
 .match-day-label {
@@ -781,7 +829,7 @@ input[type="number"]:focus {
 }
 
 /* Misc */
-.hint { font-size: .8rem; color: var(--muted); margin-bottom: 12px; }
+.hint { font-size: .85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.45; }
 
 .divider {
   border: none;
@@ -818,12 +866,15 @@ input[type="number"]:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: .85rem;
-  font-weight: 700;
-  color: var(--muted);
-  padding: 11px 14px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gold2);
+  background: linear-gradient(135deg, rgba(245,166,35,.14), rgba(245,166,35,0));
+  padding: 14px 16px;
   user-select: none;
 }
+
+.welcome-header #welcome-arrow { color: var(--gold); font-size: 1.3rem; }
 
 .how-grid {
   display: grid;
@@ -841,9 +892,9 @@ input[type="number"]:focus {
   gap: 4px;
 }
 
-.how-item span { font-size: 1.4rem; }
-.how-item strong { font-size: .82rem; color: var(--text); }
-.how-item p { font-size: .73rem; color: var(--muted); margin: 0; line-height: 1.4; }
+.how-item span { font-size: 1.5rem; }
+.how-item strong { font-size: .92rem; color: var(--text); }
+.how-item p { font-size: .85rem; color: #aebbdb; margin: 0; line-height: 1.45; }
 
 .pts-grid {
   display: grid;
@@ -858,14 +909,14 @@ input[type="number"]:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
-  font-size: .68rem;
-  color: var(--muted);
-  gap: 2px;
+  padding: 10px 4px;
+  font-size: .8rem;
+  color: #aebbdb;
+  gap: 4px;
   text-align: center;
 }
 
-.pts-grid strong { font-size: .82rem; color: var(--gold); font-weight: 800; }
+.pts-grid strong { font-size: .92rem; color: var(--gold); font-weight: 800; }
 
 /* Desktop: center the layout */
 @media (min-width: 600px) {
@@ -874,3 +925,53 @@ input[type="number"]:focus {
   .tab   { min-width: 100px; }
   .tab-content { padding: 20px 24px; }
 }
+
+/* ─── Footer ──────────────────────────────────────────────────────────── */
+.site-footer {
+  text-align: center;
+  font-size: .72rem;
+  color: var(--muted);
+  letter-spacing: .5px;
+  padding: 18px 12px 24px;
+  opacity: .7;
+}
+
+/* ─── Mis Pronósticos summary ────────────────────────────────────────────── */
+.my-preds-summary {
+  text-align: center;
+  margin: 8px 0 14px;
+}
+.my-preds-points {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--gold);
+}
+.my-preds-points small {
+  display: inline-block;
+  font-size: .7rem;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 6px;
+}
+.my-preds-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.my-pred-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+.my-pred-row:last-child { border-bottom: none; }
+.my-pred-match { flex: 1; color: var(--text); }
+.my-pred-pick  { font-weight: 700; color: var(--gold2); text-align: right; }
+.my-pred-status { font-size: .9rem; min-width: 24px; text-align: right; }
+.my-pred-status.ok { color: var(--green); }
+.my-pred-status.no { color: var(--red); opacity: .6; }
+
+#my-preds-modal .btn-secondary { margin-top: 14px; }

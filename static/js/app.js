@@ -109,6 +109,7 @@ function renderLeaderboard() {
   })).sort((a, b) => b.points - a.points || b.correct - a.correct);
 
   const MEDALS = ["🥇","🥈","🥉"];
+  const lastRank = board.length;
 
   el.innerHTML = board.map((p, i) => {
     const rank     = i + 1;
@@ -118,12 +119,20 @@ function renderLeaderboard() {
       ? `<img src="${p.photo_url}" alt="${p.name}">`
       : p.avatar || "⚽";
 
+    let tag = "";
+    if (rank === 1 && p.points > 0) {
+      tag = `<span class="player-tag lead">🔥 EN LA CIMA</span>`;
+    } else if (rank === lastRank && lastRank > 2) {
+      tag = `<span class="player-tag last">🙈 FAROLITO ROJO</span>`;
+    }
+
     return `<div class="leaderboard-card ${rankCls}">
       <div class="rank">${medal}</div>
       <div class="avatar">${p.photo_url ? `<img src="${p.photo_url}" alt="">` : p.avatar}</div>
       <div class="player-info">
         <div class="player-name">${esc(p.name)}</div>
         <div class="player-sub">${p.predCount} pronósticos · ${p.correct} aciertos</div>
+        ${tag ? `<div>${tag}</div>` : ""}
       </div>
       <div class="points">${p.points}<small>pts</small></div>
     </div>`;
@@ -547,6 +556,7 @@ async function submitPredictions() {
   const code     = document.getElementById("input-code").value.trim();
   const champion = document.getElementById("special-champion").value.trim();
   const runner   = document.getElementById("special-runner").value.trim();
+  const third    = document.getElementById("special-third").value.trim();
   const scorer   = document.getElementById("special-scorer").value.trim();
   const btnEl    = document.getElementById("btn-submit");
   const errEl2   = document.getElementById("error-msg-2");
@@ -592,24 +602,44 @@ async function submitPredictions() {
     }
 
     // 3. Insert/update special bets
-    if (champion || runner || scorer) {
+    if (champion || runner || third || scorer) {
       const { error: sErr } = await sb.from("special_bets").upsert({
         participant_id: pid,
         champion:       champion || null,
         runner_up:      runner   || null,
+        third_place:    third    || null,
         top_scorer:     scorer   || null,
         updated_at:     new Date().toISOString(),
       }, { onConflict: "participant_id" });
       if (sErr) throw new Error(sErr.message);
     }
 
+    // Remember who's playing on this device (for "Mis Pronósticos")
+    localStorage.setItem("wc_participant_name", name);
+
     // Success
     showStep(3);
     const phase = getActivePhase();
     const phaseLabel = phase ? (STAGE_LABEL[phase] || phase) : "";
-    const msg = _existingParticipant
-      ? `¡${name}, tus ${predRows.length} pronósticos para ${phaseLabel} quedaron guardados!`
-      : `¡${name}, tus ${predRows.length} pronósticos quedaron guardados! Buena suerte.`;
+    const coveredIds = new Set([
+      ...(_existingParticipant
+        ? _predictions.filter(p => p.participant_id === _existingParticipant.id).map(p => p.match_id)
+        : []),
+      ...predRows.map(r => r.match_id),
+    ]);
+    const remaining = _matches.filter(m =>
+      m.stage === phase && m.status !== "FINISHED" && !coveredIds.has(m.match_id)
+    ).length;
+    let msg;
+    if (predRows.length === 0) {
+      msg = `¡Listo, ${name}! Quedaste registrado. Vuelve cuando quieras a llenar tus pronósticos.`;
+    } else if (remaining > 0) {
+      msg = `¡${name}, guardamos ${predRows.length} pronósticos de ${phaseLabel}! Te faltan ${remaining} — vuelve cuando quieras para completarlos.`;
+    } else {
+      msg = _existingParticipant
+        ? `¡${name}, tus ${predRows.length} pronósticos para ${phaseLabel} quedaron guardados!`
+        : `¡${name}, tus ${predRows.length} pronósticos quedaron guardados! Buena suerte.`;
+    }
     document.getElementById("success-msg").textContent = msg;
 
     await loadAllData();
@@ -618,6 +648,82 @@ async function submitPredictions() {
     if (errEl2) { errEl2.textContent = err.message || "Error al guardar. Intenta de nuevo."; errEl2.style.display = "block"; }
     if (btnEl) { btnEl.disabled = false; btnEl.textContent = "✅ Guardar Pronósticos"; }
   }
+}
+
+// ─── Mis Pronósticos (summary view) ────────────────────────────────────────
+function showMyPredictions() {
+  const modal = document.getElementById("my-preds-modal");
+  const body  = document.getElementById("my-preds-body");
+
+  let name = localStorage.getItem("wc_participant_name");
+  if (!name) {
+    name = (prompt("¿Cuál es tu nombre? (el mismo con el que te uniste)") || "").trim();
+    if (!name) return;
+  }
+
+  const participant = _participants.find(
+    p => p.name.trim().toLowerCase() === name.toLowerCase()
+  );
+
+  if (!participant) {
+    body.innerHTML = `<p class="hint">No encontramos a "<strong>${esc(name)}</strong>" en la polla.
+      Revisa que el nombre esté escrito igual a como te uniste, o únete primero.</p>`;
+    modal.classList.remove("hidden");
+    return;
+  }
+
+  localStorage.setItem("wc_participant_name", participant.name);
+
+  const myPreds = _predictions.filter(p => p.participant_id === participant.id);
+  const bet     = _specialBets.find(s => s.participant_id === participant.id);
+
+  let html = `<div class="my-preds-summary">
+    <div class="my-preds-points">${calcPoints(participant.id)}<small>pts totales</small></div>
+    <p class="hint">${myPreds.length} pronósticos guardados · ${countCorrect(participant.id)} aciertos</p>
+  </div>`;
+
+  if (myPreds.length) {
+    const sorted = [...myPreds].sort((a, b) => {
+      const ma = _matches.find(m => m.match_id === a.match_id);
+      const mb = _matches.find(m => m.match_id === b.match_id);
+      return new Date(ma?.kickoff_utc || 0) - new Date(mb?.kickoff_utc || 0);
+    });
+    html += `<div class="my-preds-list">` + sorted.map(p => {
+      const m = _matches.find(mm => mm.match_id === p.match_id);
+      if (!m) return "";
+      const pickLabel = p.pred_result === "H"
+        ? `${flag(m.home_team)} ${shortName(m.home_team)}`
+        : p.pred_result === "A"
+          ? `${flag(m.away_team)} ${shortName(m.away_team)}`
+          : "🤝 Empate";
+      let statusHtml = "";
+      if (m.status === "FINISHED" && m.home_score !== null) {
+        const actual = m.winner === "HOME_TEAM" ? "H" : m.winner === "AWAY_TEAM" ? "A" : "D";
+        statusHtml = p.pred_result === actual
+          ? `<span class="my-pred-status ok">✅</span>`
+          : `<span class="my-pred-status no">❌</span>`;
+      }
+      return `<div class="my-pred-row">
+        <div class="my-pred-match">${esc(shortName(m.home_team))} vs ${esc(shortName(m.away_team))}</div>
+        <div class="my-pred-pick">${pickLabel}</div>
+        ${statusHtml}
+      </div>`;
+    }).join("") + `</div>`;
+  } else {
+    html += `<p class="hint">Aún no has hecho pronósticos. Toca "⚽ Unirme a la Polla" para empezar.</p>`;
+  }
+
+  if (bet && (bet.champion || bet.runner_up || bet.third_place || bet.top_scorer)) {
+    html += `<hr class="divider"><h3 style="font-size:.95rem;color:var(--gold);margin-bottom:8px">🌟 Apuestas Especiales</h3>`;
+    if (bet.champion)    html += `<div class="my-pred-row"><div class="my-pred-match">🏆 Campeón</div><div class="my-pred-pick">${flag(bet.champion)} ${esc(bet.champion)}</div></div>`;
+    if (bet.runner_up)   html += `<div class="my-pred-row"><div class="my-pred-match">🥈 Subcampeón</div><div class="my-pred-pick">${flag(bet.runner_up)} ${esc(bet.runner_up)}</div></div>`;
+    if (bet.third_place) html += `<div class="my-pred-row"><div class="my-pred-match">🥉 Tercer puesto</div><div class="my-pred-pick">${flag(bet.third_place)} ${esc(bet.third_place)}</div></div>`;
+    if (bet.top_scorer)  html += `<div class="my-pred-row"><div class="my-pred-match">⚽ Goleador</div><div class="my-pred-pick">${esc(bet.top_scorer)}</div></div>`;
+  }
+
+  body.innerHTML = html;
+  applyTwemoji("my-preds-body");
+  modal.classList.remove("hidden");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

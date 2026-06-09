@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#07111f">
-  <title>🏆 Polla Mundialera 2026 · Familia Vargas Pasapera</title>
+  <title>🏆 Polla Mundialera 2026 · Familia Lozada Vargas</title>
   <link rel="stylesheet" href="static/css/style.css">
   <!-- Supabase JS client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -17,9 +17,12 @@
 <header>
   <span class="header-trophy">🏆</span>
   <h1>Polla Mundialera 2026</h1>
-  <p class="header-family">Familia Vargas Pasapera</p>
+  <p class="header-family">Familia Lozada Vargas</p>
   <div id="countdown"></div>
-  <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
+  <div class="header-actions">
+    <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
+    <button class="btn-mypreds" onclick="showMyPredictions()">📋 Mis Pronósticos</button>
+  </div>
 </header>
 
 <!-- ══════════════════ TABS ══════════════════ -->
@@ -67,6 +70,7 @@
         <div>⚡ Eliminatoria<strong>+3 pts</strong></div>
         <div>🏆 Campeón<strong>10 pts</strong></div>
         <div>🥈 Subcampeón<strong>5 pts</strong></div>
+        <div>🥉 Tercer puesto<strong>5 pts</strong></div>
         <div>⚽ Goleador<strong>5 pts</strong></div>
       </div>
     </div>
@@ -128,7 +132,7 @@
     <!-- ─── Step 2: Predictions ──────────────── -->
     <div id="step-2" style="display:none">
       <h2>📋 Mis Pronósticos <span id="phase-badge" class="phase-badge-inline"></span></h2>
-      <p class="hint">Selecciona el ganador de cada partido.</p>
+      <p class="hint">Selecciona el ganador de cada partido. No tienes que terminar todo ahora: guarda lo que llenes y vuelve cuando quieras para completar el resto.</p>
 
       <div id="predictions-form"></div>
 
@@ -143,6 +147,9 @@
 
         <label>🥈 Subcampeón <small style="color:var(--muted)">(5 pts)</small></label>
         <input id="special-runner" type="text" placeholder="País subcampeón" list="teams-list" autocomplete="off">
+
+        <label>🥉 Tercer Lugar <small style="color:var(--muted)">(5 pts)</small></label>
+        <input id="special-third" type="text" placeholder="País tercer lugar" list="teams-list" autocomplete="off">
 
         <label>⚽ Goleador del Torneo <small style="color:var(--muted)">(5 pts)</small></label>
         <input id="special-scorer" type="text" placeholder="Nombre del jugador" autocomplete="off">
@@ -171,6 +178,19 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════════════ MIS PRONÓSTICOS MODAL ══════════════════ -->
+<div id="my-preds-modal" class="modal-backdrop hidden" onclick="if(event.target.id==='my-preds-modal') document.getElementById('my-preds-modal').classList.add('hidden')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2>📋 Mis Pronósticos</h2>
+    <div id="my-preds-body"></div>
+    <button class="btn-secondary" onclick="document.getElementById('my-preds-modal').classList.add('hidden')">Cerrar</button>
+  </div>
+</div>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<footer class="site-footer">Created by: Eloz Consulting</footer>
 
 <!-- Scripts -->
 <script src="static/js/config.js"></script>

@@ -75,9 +75,13 @@ create table if not exists special_bets (
   participant_id uuid not null references participants(id) on delete cascade unique,
   champion       text,
   runner_up      text,
+  third_place    text,
   top_scorer     text,
   updated_at     timestamptz default now()
 );
+
+-- Add third_place to existing tables (safe to re-run)
+alter table special_bets add column if not exists third_place text;
 
 -- ─── Row Level Security ──────────────────────────────────────────────────────
 alter table participants    enable row level security;
