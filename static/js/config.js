@@ -20,8 +20,20 @@ window.WC_START = new Date("2026-06-11T19:00:00-05:00");
 
 // ─── Available emojis for avatar picker ──────────────────────────────────────
 window.AVATARS = [
-  "🇨🇴","🇦🇷","🇧🇷","🇲🇽","🇪🇸","🇺🇸","🇩🇪","🇫🇷",
-  "⭐","🦁","🔥","💪","🏆","👑","🎯","😎",
+  // Americas
+  "🇨🇴","🇦🇷","🇧🇷","🇲🇽","🇺🇸","🇨🇦","🇪🇨","🇵🇪",
+  "🇺🇾","🇨🇱","🇵🇦","🇨🇷","🇵🇾","🇧🇴","🇻🇪","🇯🇲",
+  // Europa/África/Asia
+  "🇪🇸","🇩🇪","🇫🇷","🇵🇹","🇳🇱","🇧🇪","🇮🇹","🇨🇭",
+  "🇬🇧","🇦🇺","🇯🇵","🇰🇷","🇲🇦","🇳🇬","🇸🇦","🇩🇰",
+  // Trofeos y deportes
+  "🏆","🥇","🥈","🥉","🎯","⚽","🏅","🎖️",
+  // Fuego y poder
+  "🔥","⭐","💪","👑","⚡","💎","🌟","🚀",
+  // Personajes y animales
+  "🦁","🐯","🦅","🐉","🦊","🐺","🦸","🤴",
+  // Caras
+  "😎","🤩","😤","🤠","🫡","🥵","👸","🧙",
 ];
 
 // ─── Country → flag emoji lookup ─────────────────────────────────────────────
@@ -46,6 +58,18 @@ window.FLAG = {
   "Albania":"🇦🇱","Turkey":"🇹🇷","Greece":"🇬🇷","Slovenia":"🇸🇮",
   "Bosnia and Herzegovina":"🇧🇦","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
   "Israel":"🇮🇱","Curaçao":"🇨🇼","Suriname":"🇸🇷","Cuba":"🇨🇺",
+  // football-data.org name variants
+  "Korea Republic":"🇰🇷","IR Iran":"🇮🇷","Türkiye":"🇹🇷",
+  "China PR":"🇨🇳","Chinese Taipei":"🇨🇳","Hong Kong":"🇭🇰",
+  "USA":"🇺🇸","CAN":"🇨🇦","MEX":"🇲🇽",
+  "Republic of Ireland":"🇮🇪","Northern Ireland":"🇬🇧",
+  "Congo DR":"🇨🇩","Tanzania":"🇹🇿","Zambia":"🇿🇲","Zimbabwe":"🇿🇼",
+  "Cape Verde":"🇨🇻","Tunisia":"🇹🇳","Algeria":"🇩🇿","Benin":"🇧🇯",
+  "Comoros":"🇰🇲","Equatorial Guinea":"🇬🇶","Guinea":"🇬🇳",
+  "New Caledonia":"🇳🇨","Papua New Guinea":"🇵🇬","Tahiti":"🇵🇫",
+  "Afghanistan":"🇦🇫","Kyrgyzstan":"🇰🇬","Myanmar":"🇲🇲",
+  "Philippines":"🇵🇭","Singapore":"🇸🇬","Thailand":"🇹🇭",
+  "Vietnam":"🇻🇳","Yemen":"🇾🇪","Kuwait":"🇰🇼","Oman":"🇴🇲",
 };
 
 window.STAGE_LABEL = {

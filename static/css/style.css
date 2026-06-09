@@ -309,6 +309,7 @@ header h1 {
 
 .match-score.live { color: var(--green); animation: pulse 1.5s infinite; }
 .match-score.scheduled { font-size: .85rem; color: var(--muted); font-weight: 600; }
+.match-score .win { color: var(--green); font-weight: 900; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -524,6 +525,39 @@ input[type="number"]:focus {
   background: rgba(245,166,35,.12);
   transform: scale(1.1);
 }
+
+.avatar-opt.taken {
+  opacity: .28;
+  cursor: not-allowed;
+  filter: grayscale(60%);
+}
+.avatar-opt.taken:hover { transform: none; }
+
+.phase-badge-inline {
+  display: inline-block;
+  font-size: .72rem;
+  background: rgba(245,166,35,.18);
+  border: 1px solid rgba(245,166,35,.4);
+  color: var(--gold);
+  border-radius: 6px;
+  padding: 2px 8px;
+  vertical-align: middle;
+  font-weight: 700;
+  letter-spacing: .3px;
+  margin-left: 6px;
+}
+
+.hint-done {
+  background: rgba(46,204,113,.1);
+  border: 1px solid rgba(46,204,113,.3);
+  border-radius: 10px;
+  color: var(--green);
+  font-size: .85rem;
+  padding: 14px 16px;
+  text-align: center;
+  line-height: 1.6;
+}
+.hint-done span { font-size: 1.2rem; margin-right: 6px; }
 
 /* Prediction group */
 .pred-group {

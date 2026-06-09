@@ -7,8 +7,18 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let _matches = [], _participants = [], _predictions = [], _specialBets = [];
 let _selectedAvatar = AVATARS[0];
-let _matchPreds = {};   // { match_id: { result, home, away } }
+let _matchPreds = {};
 let _currentStep = 1;
+let _existingParticipant = null;  // set when returning participant re-submits
+
+const PHASE_ORDER = ["GROUP_STAGE","ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+
+function getActivePhase() {
+  for (const stage of PHASE_ORDER) {
+    if (_matches.some(m => m.stage === stage && m.status !== "FINISHED")) return stage;
+  }
+  return null;
+}
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
@@ -255,37 +265,70 @@ async function renderGroups() {
   if (!el) return;
 
   const { data } = await sb.from("group_standings").select("*").order("points", { ascending: false });
-  if (!data || !data.length) {
-    el.innerHTML = `<div class="empty-state"><span class="big">📊</span><p>Posiciones aún no disponibles.</p></div>`;
+
+  if (data && data.length) {
+    // Real standings from DB
+    const groups = {};
+    for (const row of data) {
+      if (!groups[row.group_name]) groups[row.group_name] = [];
+      groups[row.group_name].push(row);
+    }
+    el.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([gName, teams]) => {
+      const label = gName.replace("GROUP_","Grupo ");
+      const sorted = teams.sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
+      return `<div class="group-section">
+        <div class="group-header">${label}</div>
+        <table class="group-table">
+          <thead><tr>
+            <th>Equipo</th><th>J</th><th>G</th><th>E</th><th>P</th><th>GD</th><th>Pts</th>
+          </tr></thead>
+          <tbody>
+            ${sorted.map(t => `<tr>
+              <td>${flag(t.team)} ${esc(t.team)}</td>
+              <td>${t.played}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
+              <td>${t.goal_diff > 0 ? "+" : ""}${t.goal_diff}</td>
+              <td class="pts-col">${t.points}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+    }).join("");
     return;
   }
 
-  const groups = {};
-  for (const row of data) {
-    if (!groups[row.group_name]) groups[row.group_name] = [];
-    groups[row.group_name].push(row);
+  // Pre-tournament fallback: derive teams from match data
+  const teamsByGroup = {};
+  for (const m of _matches) {
+    if (!m.group_name || !m.group_name.startsWith("GROUP_")) continue;
+    if (!teamsByGroup[m.group_name]) teamsByGroup[m.group_name] = new Set();
+    if (m.home_team && m.home_team !== "TBD") teamsByGroup[m.group_name].add(m.home_team);
+    if (m.away_team && m.away_team !== "TBD") teamsByGroup[m.group_name].add(m.away_team);
   }
 
-  el.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([gName, teams]) => {
-    const label = gName.replace("GROUP_","Grupo ");
-    const sorted = teams.sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
-    return `<div class="group-section">
-      <div class="group-header">${label}</div>
-      <table class="group-table">
-        <thead><tr>
-          <th>Equipo</th><th>J</th><th>G</th><th>E</th><th>P</th><th>GD</th><th>Pts</th>
-        </tr></thead>
-        <tbody>
-          ${sorted.map(t => `<tr>
-            <td>${flag(t.team)} ${esc(t.team)}</td>
-            <td>${t.played}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
-            <td>${t.goal_diff > 0 ? "+" : ""}${t.goal_diff}</td>
-            <td class="pts-col">${t.points}</td>
-          </tr>`).join("")}
-        </tbody>
-      </table>
-    </div>`;
-  }).join("");
+  if (!Object.keys(teamsByGroup).length) {
+    el.innerHTML = `<div class="empty-state"><span class="big">📊</span><p>Posiciones disponibles el 11 de junio.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<p class="hint" style="text-align:center;margin-bottom:14px">Posiciones arrancan el 11 de junio</p>` +
+    Object.entries(teamsByGroup).sort(([a],[b]) => a.localeCompare(b)).map(([gName, teamsSet]) => {
+      const label = gName.replace("GROUP_","Grupo ");
+      const teams = [...teamsSet].sort();
+      return `<div class="group-section">
+        <div class="group-header">${label}</div>
+        <table class="group-table">
+          <thead><tr>
+            <th>Equipo</th><th>J</th><th>G</th><th>E</th><th>P</th><th>GD</th><th>Pts</th>
+          </tr></thead>
+          <tbody>
+            ${teams.map(t => `<tr>
+              <td>${flag(t)} ${esc(t)}</td>
+              <td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="pts-col">0</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+    }).join("");
 }
 
 // ─── Scorers ──────────────────────────────────────────────────────────────
@@ -313,14 +356,15 @@ async function renderScorers() {
 
 // ─── Join modal ───────────────────────────────────────────────────────────
 function showJoinModal() {
-  _matchPreds   = {};
-  _currentStep  = 1;
+  _matchPreds          = {};
+  _currentStep         = 1;
+  _existingParticipant = null;
   document.getElementById("join-modal").classList.remove("hidden");
-  document.getElementById("input-name").value  = "";
-  document.getElementById("input-code").value  = "";
+  document.getElementById("input-name").value = "";
+  document.getElementById("input-code").value = "";
   document.getElementById("error-msg").style.display = "none";
   showStep(1);
-  buildPredictionsForm();
+  buildAvatarPicker();  // rebuild with current taken list
 }
 
 function hideJoinModal() {
@@ -338,65 +382,118 @@ function showStep(n) {
   });
 }
 
-// Avatar picker
+// Avatar picker — taken avatars are greyed out and unselectable
 function buildAvatarPicker() {
   const el = document.getElementById("avatar-grid");
   if (!el) return;
-  el.innerHTML = AVATARS.map((a, i) => `
-    <button class="avatar-opt ${i === 0 ? "selected" : ""}"
-            onclick="selectAvatar('${a}', this)">${a}</button>
-  `).join("");
+  const takenBy = {};
+  for (const p of _participants) {
+    if (p.avatar) takenBy[p.avatar] = p.name;
+  }
+  // pick first free avatar as default
+  const firstFree = AVATARS.find(a => !takenBy[a]) || AVATARS[0];
+  _selectedAvatar = firstFree;
+
+  el.innerHTML = AVATARS.map((a, i) => {
+    const taken = takenBy[a];
+    const selected = a === firstFree;
+    return `<button class="avatar-opt${selected ? " selected" : ""}${taken ? " taken" : ""}"
+      data-idx="${i}" title="${taken ? "Tomado por " + esc(taken) : a}"
+      onclick="selectAvatarByIdx(${i}, this)">${a}</button>`;
+  }).join("");
 }
 
-function selectAvatar(emoji, btn) {
-  _selectedAvatar = emoji;
+function selectAvatarByIdx(idx, btn) {
+  const a = AVATARS[idx];
+  const takenBy = {};
+  for (const p of _participants) { if (p.avatar) takenBy[p.avatar] = p.name; }
+  if (takenBy[a]) return;
+  _selectedAvatar = a;
   document.querySelectorAll(".avatar-opt").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
 }
 
 // Step 1 → Step 2
 function nextStep() {
-  const name = document.getElementById("input-name").value.trim();
-  const code = document.getElementById("input-code").value.trim();
+  const name  = document.getElementById("input-name").value.trim();
+  const code  = document.getElementById("input-code").value.trim();
   const errEl = document.getElementById("error-msg");
 
-  if (!name) { showError("Escribe tu nombre 😊"); return; }
-  if (!code)  { showError("Ingresa el código familiar"); return; }
+  if (!name) { showError("Escribe tu nombre"); return; }
+  if (!code) { showError("Ingresa el código familiar"); return; }
+  if (code !== FAMILY_CODE) { showError("Código incorrecto 🚫 Pregúntale a Eduardo"); return; }
+
+  // Detect returning participant
+  _existingParticipant = _participants.find(
+    p => p.name.trim().toLowerCase() === name.toLowerCase()
+  ) || null;
 
   errEl.style.display = "none";
+  buildPredictionsForm();  // rebuild for current phase / existing preds
+  updatePhaseBadge();
   showStep(2);
 }
 
-// Build predictions form from wc_matches
+function updatePhaseBadge() {
+  const el = document.getElementById("phase-badge");
+  if (!el) return;
+  const phase = getActivePhase();
+  el.textContent = phase ? (STAGE_LABEL[phase] || phase) : "";
+}
+
+// Build predictions form — only current active phase, skip already-predicted matches
 function buildPredictionsForm() {
   const el = document.getElementById("predictions-form");
   if (!el) return;
 
-  // Only show GROUP_STAGE and open phases
-  const groups = {};
-  for (const m of _matches) {
-    if (m.status === "FINISHED") continue;  // skip already played
-    const gname = m.group_name || m.stage || "Otros";
-    if (!groups[gname]) groups[gname] = [];
-    groups[gname].push(m);
-  }
-
-  if (!Object.keys(groups).length) {
-    el.innerHTML = `<p class="hint">No hay partidos pendientes en este momento.</p>`;
+  const phase = getActivePhase();
+  if (!phase) {
+    el.innerHTML = `<p class="hint">El torneo ha terminado. Gracias por participar!</p>`;
     return;
   }
 
-  el.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([gname, ms]) => {
-    const label = gname.replace("GROUP_","Grupo ");
-    return `<div class="pred-group">
-      <div class="pred-group-header" onclick="toggleGroup(this)">
-        ${label} <span>▾</span>
-      </div>
-      <div class="pred-group-body">
-        ${ms.map(m => predMatchRow(m)).join("")}
-      </div>
+  const alreadyPredicted = new Set(
+    _existingParticipant
+      ? _predictions.filter(p => p.participant_id === _existingParticipant.id).map(p => p.match_id)
+      : []
+  );
+
+  const matches = _matches.filter(m =>
+    m.stage === phase &&
+    m.status !== "FINISHED" &&
+    !alreadyPredicted.has(m.match_id)
+  );
+
+  if (!matches.length) {
+    const phaseLabel = STAGE_LABEL[phase] || phase;
+    el.innerHTML = `<div class="hint-done">
+      <span>✔</span> Ya tienes todos tus pronósticos para <strong>${phaseLabel}</strong>.<br>
+      Vuelve cuando empiece la siguiente fase.
     </div>`;
-  }).join("");
+    return;
+  }
+
+  if (phase === "GROUP_STAGE") {
+    const groups = {};
+    for (const m of matches) {
+      const g = m.group_name || "Otros";
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(m);
+    }
+    el.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([gname, ms]) => {
+      const label = gname.replace("GROUP_","Grupo ");
+      return `<div class="pred-group">
+        <div class="pred-group-header" onclick="toggleGroup(this)">${label} <span>▾</span></div>
+        <div class="pred-group-body">${ms.map(m => predMatchRow(m)).join("")}</div>
+      </div>`;
+    }).join("");
+  } else {
+    const label = STAGE_LABEL[phase] || phase;
+    el.innerHTML = `<div class="pred-group">
+      <div class="pred-group-header" onclick="toggleGroup(this)">${label} <span>▾</span></div>
+      <div class="pred-group-body">${matches.map(m => predMatchRow(m)).join("")}</div>
+    </div>`;
+  }
 }
 
 function toggleGroup(header) {
@@ -486,15 +583,19 @@ async function submitPredictions() {
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Guardando..."; }
 
   try {
-    // 1. Insert participant
-    const { data: pRow, error: pErr } = await sb
-      .from("participants")
-      .insert({ name, avatar: _selectedAvatar })
-      .select("id, name")
-      .single();
-
-    if (pErr) throw new Error(pErr.message);
-    const pid = pRow.id;
+    // 1. Get or create participant
+    let pid;
+    if (_existingParticipant) {
+      pid = _existingParticipant.id;
+    } else {
+      const { data: pRow, error: pErr } = await sb
+        .from("participants")
+        .insert({ name, avatar: _selectedAvatar })
+        .select("id, name")
+        .single();
+      if (pErr) throw new Error(pErr.message);
+      pid = pRow.id;
+    }
 
     // 2. Insert match predictions
     const predRows = Object.entries(_matchPreds)
@@ -512,21 +613,26 @@ async function submitPredictions() {
       if (predErr) throw new Error(predErr.message);
     }
 
-    // 3. Insert special bets
+    // 3. Insert/update special bets
     if (champion || runner || scorer) {
-      const { error: sErr } = await sb.from("special_bets").insert({
+      const { error: sErr } = await sb.from("special_bets").upsert({
         participant_id: pid,
         champion:       champion || null,
         runner_up:      runner   || null,
         top_scorer:     scorer   || null,
-      });
+        updated_at:     new Date().toISOString(),
+      }, { onConflict: "participant_id" });
       if (sErr) throw new Error(sErr.message);
     }
 
     // Success
     showStep(3);
-    document.getElementById("success-msg").textContent =
-      `¡${name}, tus ${predRows.length} pronósticos quedaron guardados! Buena suerte 🍀`;
+    const phase = getActivePhase();
+    const phaseLabel = phase ? (STAGE_LABEL[phase] || phase) : "";
+    const msg = _existingParticipant
+      ? `¡${name}, tus ${predRows.length} pronósticos para ${phaseLabel} quedaron guardados!`
+      : `¡${name}, tus ${predRows.length} pronósticos quedaron guardados! Buena suerte.`;
+    document.getElementById("success-msg").textContent = msg;
 
     await loadAllData();
 
