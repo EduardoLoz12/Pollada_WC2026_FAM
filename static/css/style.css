@@ -80,13 +80,6 @@ header h1 {
   color: var(--gold2);
 }
 
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
 .btn-join {
   background: linear-gradient(135deg, var(--gold), #e8920e);
   border: none;
@@ -104,23 +97,6 @@ header h1 {
 }
 
 .btn-join:active { transform: scale(.97); }
-
-.btn-mypreds {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text);
-  cursor: pointer;
-  font-size: .8rem;
-  font-weight: 700;
-  letter-spacing: .3px;
-  padding: 8px 22px;
-  width: 100%;
-  max-width: 320px;
-  transition: border-color .12s, transform .12s;
-}
-
-.btn-mypreds:active { transform: scale(.97); border-color: var(--gold); }
 
 /* ─── Tabs ────────────────────────────────────────────────────────────── */
 .tabs {
@@ -974,4 +950,5 @@ input[type="number"]:focus {
 .my-pred-status.ok { color: var(--green); }
 .my-pred-status.no { color: var(--red); opacity: .6; }
 
-#my-preds-modal .btn-secondary { margin-top: 14px; }
+#my-preds-namebox { margin-bottom: 16px; }
+#my-preds-namebox .btn-primary { width: 100%; }

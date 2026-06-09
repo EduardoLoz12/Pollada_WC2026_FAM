@@ -19,10 +19,7 @@
   <h1>Polla Mundialera 2026</h1>
   <p class="header-family">Familia Lozada Vargas</p>
   <div id="countdown"></div>
-  <div class="header-actions">
-    <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
-    <button class="btn-mypreds" onclick="showMyPredictions()">📋 Mis Pronósticos</button>
-  </div>
+  <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
 </header>
 
 <!-- ══════════════════ TABS ══════════════════ -->
@@ -31,6 +28,7 @@
   <button class="tab"        data-tab="partidos"   onclick="showTab('partidos')">📅 Partidos</button>
   <button class="tab"        data-tab="grupos"     onclick="showTab('grupos')">📊 Grupos</button>
   <button class="tab"        data-tab="goleadores" onclick="showTab('goleadores')">⚽ Goles</button>
+  <button class="tab"        data-tab="mispronos"  onclick="showTab('mispronos')">📋 Mis Pronósticos</button>
 </nav>
 
 <!-- ══════════════════ TABLA FAMILIAR ══════════════════ -->
@@ -96,6 +94,17 @@
 <section id="tab-goleadores" class="tab-content">
   <div class="section-title">⚽ Goleadores del Torneo</div>
   <div id="scorers-list" class="loading">Cargando goleadores...</div>
+</section>
+
+<!-- ══════════════════ MIS PRONÓSTICOS ══════════════════ -->
+<section id="tab-mispronos" class="tab-content">
+  <div class="section-title">📋 Mis Pronósticos</div>
+  <div id="my-preds-namebox">
+    <p class="hint">Escribe tu nombre (el mismo con el que te uniste) para ver tus pronósticos guardados.</p>
+    <input id="my-preds-name-input" type="text" placeholder="Tu nombre" autocomplete="off" onkeyup="if(event.key==='Enter') loadMyPredictions()">
+    <button class="btn-primary" onclick="loadMyPredictions()">Ver mis pronósticos</button>
+  </div>
+  <div id="my-preds-body"></div>
 </section>
 
 <!-- ══════════════════ JOIN MODAL ══════════════════ -->
@@ -172,16 +181,6 @@
         🏅 Ver la tabla familiar
       </button>
     </div>
-  </div>
-</div>
-
-<!-- ══════════════════ MIS PRONÓSTICOS MODAL ══════════════════ -->
-<div id="my-preds-modal" class="modal-backdrop hidden" onclick="if(event.target.id==='my-preds-modal') document.getElementById('my-preds-modal').classList.add('hidden')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <h2>📋 Mis Pronósticos</h2>
-    <div id="my-preds-body"></div>
-    <button class="btn-secondary" onclick="document.getElementById('my-preds-modal').classList.add('hidden')">Cerrar</button>
   </div>
 </div>
 

@@ -86,6 +86,14 @@ function showTab(name) {
   document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
   document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
   document.getElementById(`tab-${name}`).classList.add("active");
+
+  if (name === "mispronos") {
+    const saved = localStorage.getItem("wc_participant_name");
+    if (saved) {
+      document.getElementById("my-preds-name-input").value = saved;
+      loadMyPredictions();
+    }
+  }
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────
@@ -649,14 +657,13 @@ async function submitPredictions() {
 }
 
 // ─── Mis Pronósticos (summary view) ────────────────────────────────────────
-function showMyPredictions() {
-  const modal = document.getElementById("my-preds-modal");
-  const body  = document.getElementById("my-preds-body");
+function loadMyPredictions() {
+  const body = document.getElementById("my-preds-body");
+  const name = (document.getElementById("my-preds-name-input").value || "").trim();
 
-  let name = localStorage.getItem("wc_participant_name");
   if (!name) {
-    name = (prompt("¿Cuál es tu nombre? (el mismo con el que te uniste)") || "").trim();
-    if (!name) return;
+    body.innerHTML = "";
+    return;
   }
 
   const participant = _participants.find(
@@ -666,7 +673,6 @@ function showMyPredictions() {
   if (!participant) {
     body.innerHTML = `<p class="hint">No encontramos a "<strong>${esc(name)}</strong>" en la polla.
       Revisa que el nombre esté escrito igual a como te uniste, o únete primero.</p>`;
-    modal.classList.remove("hidden");
     return;
   }
 
@@ -720,7 +726,6 @@ function showMyPredictions() {
 
   body.innerHTML = html;
   applyTwemoji("my-preds-body");
-  modal.classList.remove("hidden");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
