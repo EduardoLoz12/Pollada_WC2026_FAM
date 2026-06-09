@@ -1,7 +1,7 @@
 // ─── Supabase ────────────────────────────────────────────────────────────────
 // Anon key is safe to expose (RLS only allows SELECT from public)
 window.SUPABASE_URL      = "https://izjbpheewbfshotjsgim.supabase.co";
-window.SUPABASE_ANON_KEY = "sb_publishable_2gUX2Jb8ef0cQH-kKOnlWw_tgqb7tCZ";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6amJwaGVld2Jmc2hvdGpzZ2ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMjg4MDYsImV4cCI6MjA5NjYwNDgwNn0.BqJnf8PflAK177KTl0pqNc2Mf5HyFY19Lco8DOrS7EQ";
 
 // ─── App config ──────────────────────────────────────────────────────────────
 window.FAMILY_CODE = "LozadaVargas2026";          // ← same as FAMILY_CODE env var in Vercel
