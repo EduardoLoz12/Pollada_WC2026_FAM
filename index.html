@@ -32,6 +32,55 @@
 
 <!-- ══════════════════ TABLA FAMILIAR ══════════════════ -->
 <section id="tab-tabla" class="tab-content active">
+
+  <!-- ── Bienvenida / cómo funciona ── -->
+  <div class="welcome-card">
+    <div class="welcome-header" onclick="toggleWelcome()">
+      <span>🌎 ¿Cómo funciona la Polla?</span>
+      <span id="welcome-arrow">▾</span>
+    </div>
+    <div id="welcome-body">
+      <p class="welcome-intro">¡Bienvenidos a la Polla Mundialera 2026 de la Familia Vargas Pasapera! ⚽🏆</p>
+      <div class="how-steps">
+        <div class="how-step">
+          <span class="how-icon">1️⃣</span>
+          <div>
+            <strong>Únete</strong>
+            <p>Toca el botón <em>"Unirme a la Polla"</em>, elige tu avatar, escribe tu nombre y el código familiar que te dará Eduardo.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <span class="how-icon">2️⃣</span>
+          <div>
+            <strong>Pronostica</strong>
+            <p>Selecciona quién gana (o empata) en cada partido de la Fase de Grupos. ¡Tienes hasta antes del primer partido el <strong>11 de junio</strong>!</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <span class="how-icon">3️⃣</span>
+          <div>
+            <strong>Acumula puntos</strong>
+            <p>Cada resultado correcto = <strong style="color:var(--gold)">2 pts</strong>. En eliminatorias = <strong style="color:var(--gold)">3 pts</strong> extra. Campeón correcto = <strong style="color:var(--gold)">10 pts</strong> 🏆</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <span class="how-icon">4️⃣</span>
+          <div>
+            <strong>Ronda a ronda</strong>
+            <p>Después de cada fase (Grupos → 16avos → Cuartos…) el sistema te pedirá nuevos pronósticos con los equipos clasificados.</p>
+          </div>
+        </div>
+      </div>
+      <div class="points-summary">
+        <span>✅ Resultado correcto · <strong>2 pts</strong></span>
+        <span>⚡ Eliminatoria · <strong>+3 pts</strong></span>
+        <span>🏆 Campeón · <strong>10 pts</strong></span>
+        <span>🥈 Subcampeón · <strong>5 pts</strong></span>
+        <span>⚽ Goleador · <strong>5 pts</strong></span>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">🏆 Clasificación Familiar</div>
   <div id="leaderboard-list" class="loading">Cargando tabla...</div>
 </section>
@@ -89,7 +138,7 @@
     <!-- ─── Step 2: Predictions ──────────────── -->
     <div id="step-2" style="display:none">
       <h2>📋 Mis Pronósticos <span id="phase-badge" class="phase-badge-inline"></span></h2>
-      <p class="hint">Selecciona quién gana cada partido. El marcador exacto vale <strong style="color:var(--gold)">+3 pts</strong> extra.</p>
+      <p class="hint">Selecciona el ganador de cada partido.</p>
 
       <div id="predictions-form"></div>
 

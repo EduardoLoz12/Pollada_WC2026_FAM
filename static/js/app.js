@@ -475,28 +475,29 @@ function buildPredictionsForm() {
     return;
   }
 
-  if (phase === "GROUP_STAGE") {
-    const groups = {};
-    for (const m of matches) {
-      const g = m.group_name || "Otros";
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(m);
-    }
-    el.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([gname, ms]) => {
-      const label = gname.replace("GROUP_","Grupo ");
-      return `<div class="pred-group">
-        <div class="pred-group-header" onclick="toggleGroup(this)">${label} <span>▾</span></div>
-        <div class="pred-group-body">${ms.map(m => predMatchRow(m)).join("")}</div>
-      </div>`;
-    }).join("");
-  } else {
-    const label = STAGE_LABEL[phase] || phase;
-    el.innerHTML = `<div class="pred-group">
-      <div class="pred-group-header" onclick="toggleGroup(this)">${label} <span>▾</span></div>
-      <div class="pred-group-body">${matches.map(m => predMatchRow(m)).join("")}</div>
-    </div>`;
+  // Group by day (sorted chronologically)
+  const sorted = [...matches].sort((a, b) => new Date(a.kickoff_utc) - new Date(b.kickoff_utc));
+  const byDay = {};
+  for (const m of sorted) {
+    const day = m.kickoff_utc ? toColDate(m.kickoff_utc) : "Fecha TBD";
+    if (!byDay[day]) byDay[day] = [];
+    byDay[day].push(m);
   }
+  el.innerHTML = Object.entries(byDay).map(([day, ms]) =>
+    `<div class="pred-group">
+      <div class="pred-group-header" onclick="toggleGroup(this)">${day} <span>▾</span></div>
+      <div class="pred-group-body">${ms.map(m => predMatchRow(m)).join("")}</div>
+    </div>`
+  ).join("");
   applyTwemoji("predictions-form");
+}
+
+function toggleWelcome() {
+  const body  = document.getElementById("welcome-body");
+  const arrow = document.getElementById("welcome-arrow");
+  const open  = body.style.display !== "none";
+  body.style.display  = open ? "none" : "";
+  arrow.textContent   = open ? "▸" : "▾";
 }
 
 function toggleGroup(header) {
@@ -510,52 +511,27 @@ function toggleGroup(header) {
 function predMatchRow(m) {
   const hFlag = flag(m.home_team);
   const aFlag = flag(m.away_team);
-  const date  = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "Fecha TBD";
+  const time  = m.kickoff_utc ? toColTime(m.kickoff_utc) : "TBD";
+  const tag   = m.group_name ? m.group_name.replace("GROUP_","G.") : (STAGE_LABEL[m.stage] || "");
   return `<div class="pred-match" id="pred-${m.match_id}">
-    <div class="pred-match-date">📅 ${date}</div>
+    <div class="pred-match-meta"><span class="pred-time">${time}</span><span class="pred-tag">${tag}</span></div>
     <div class="pred-match-teams">${hFlag} ${esc(m.home_team)} vs ${esc(m.away_team)} ${aFlag}</div>
     <div class="pred-buttons">
-      <button class="pred-btn" onclick="setPred('${m.match_id}','H','${m.home_team}','${m.away_team}',this)">
-        ${hFlag} Gana ${shortName(m.home_team)}
-      </button>
-      <button class="pred-btn" onclick="setPred('${m.match_id}','D','${m.home_team}','${m.away_team}',this)">
-        Empate
-      </button>
-      <button class="pred-btn" onclick="setPred('${m.match_id}','A','${m.home_team}','${m.away_team}',this)">
-        Gana ${shortName(m.away_team)} ${aFlag}
-      </button>
-    </div>
-    <div id="score-${m.match_id}" class="score-inputs" style="display:none">
-      <div>
-        <div class="score-label">${shortName(m.home_team)}</div>
-        <input type="number" min="0" max="20" id="sh-${m.match_id}" style="width:52px;text-align:center" placeholder="0"
-               onchange="updateScore('${m.match_id}')">
-      </div>
-      <span>-</span>
-      <div>
-        <div class="score-label">${shortName(m.away_team)}</div>
-        <input type="number" min="0" max="20" id="sa-${m.match_id}" style="width:52px;text-align:center" placeholder="0"
-               onchange="updateScore('${m.match_id}')">
-      </div>
-      <span style="font-size:.75rem;color:var(--gold);margin-left:6px">+3 pts si aciertas</span>
+      <button class="pred-btn" onclick="setPred('${m.match_id}','H',this)">${hFlag} ${shortName(m.home_team)}</button>
+      <button class="pred-btn draw" onclick="setPred('${m.match_id}','D',this)">Empate</button>
+      <button class="pred-btn" onclick="setPred('${m.match_id}','A',this)">${shortName(m.away_team)} ${aFlag}</button>
     </div>
   </div>`;
 }
 
-function setPred(matchId, result, home, away, btn) {
+function setPred(matchId, result, btn) {
   if (!_matchPreds[matchId]) _matchPreds[matchId] = {};
   _matchPreds[matchId].result = result;
-
-  // Update button styles
+  _matchPreds[matchId].home   = null;
+  _matchPreds[matchId].away   = null;
   const row = document.getElementById(`pred-${matchId}`);
-  row.querySelectorAll(".pred-btn").forEach(b => {
-    b.className = "pred-btn";
-    ["H","D","A"].forEach(r => b.classList.remove(`selected-${r}`));
-  });
+  row.querySelectorAll(".pred-btn").forEach(b => b.className = b.classList.contains("draw") ? "pred-btn draw" : "pred-btn");
   btn.classList.add(`selected-${result}`);
-
-  // Show score inputs
-  document.getElementById(`score-${matchId}`).style.display = "flex";
 }
 
 function updateScore(matchId) {

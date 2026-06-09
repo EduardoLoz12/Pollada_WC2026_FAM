@@ -603,10 +603,25 @@ input[type="number"]:focus {
   gap: 6px;
 }
 
-.pred-match-date {
-  font-size: .72rem;
+.pred-match-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pred-time {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--gold2);
+}
+
+.pred-tag {
+  font-size: .68rem;
   color: var(--muted);
-  margin-bottom: 8px;
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 1px 6px;
 }
 
 .pred-buttons {
@@ -788,6 +803,73 @@ input[type="number"]:focus {
   color: var(--gold);
   margin-bottom: 4px;
 }
+
+/* ─── Welcome / How-to card ───────────────────────────────────────────────── */
+.welcome-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.welcome-header {
+  background: linear-gradient(135deg, #0d2a58, #122d5e);
+  border-bottom: 1px solid var(--border);
+  color: var(--gold);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 12px 14px;
+  user-select: none;
+}
+
+.welcome-intro {
+  font-size: .9rem;
+  color: var(--text);
+  padding: 12px 14px 8px;
+  line-height: 1.5;
+}
+
+.how-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 14px 12px;
+}
+
+.how-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.how-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+
+.how-step strong { display: block; font-size: .88rem; color: var(--text); margin-bottom: 2px; }
+.how-step p { font-size: .78rem; color: var(--muted); line-height: 1.45; margin: 0; }
+
+.points-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.points-summary span {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: .72rem;
+  color: var(--muted);
+  padding: 4px 10px;
+}
+
+.points-summary strong { color: var(--gold); }
 
 /* Desktop: center the layout */
 @media (min-width: 600px) {
