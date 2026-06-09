@@ -102,8 +102,8 @@ def refresh_matches():
         group_raw = m.get("group", "") or stage_raw
         rows.append({
             "match_id":    str(m["id"]),
-            "home_team":   (m.get("homeTeam") or {}).get("name", "TBD"),
-            "away_team":   (m.get("awayTeam") or {}).get("name", "TBD"),
+            "home_team":   (m.get("homeTeam") or {}).get("name") or "TBD",
+            "away_team":   (m.get("awayTeam") or {}).get("name") or "TBD",
             "home_score":  hs,
             "away_score":  as_,
             "winner":      score.get("winner"),
@@ -127,6 +127,8 @@ def refresh_standings():
     for block in (data.get("standings") or []):
         group_raw = block.get("group", "") or ""
         gname = map_group(group_raw) or group_raw.upper().replace(" ","_")
+        if not gname:
+            continue
         for entry in (block.get("table") or []):
             team = entry.get("team", {})
             rows.append({
@@ -188,4 +190,4 @@ if __name__ == "__main__":
     refresh_matches()
     refresh_standings()
     refresh_scorers()
-    print("\n✅ Refresh completo:", datetime.now().strftime("%d/%m/%Y %H:%M"))
+    print("\nOK Refresh completo:", datetime.now().strftime("%d/%m/%Y %H:%M"))
