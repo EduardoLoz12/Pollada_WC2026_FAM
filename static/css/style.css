@@ -937,8 +937,6 @@ input[type="number"]:focus {
   margin-left: 6px;
 }
 .my-preds-list {
-  max-height: 50vh;
-  overflow-y: auto;
   margin-bottom: 14px;
 }
 .my-pred-row {

@@ -459,7 +459,9 @@ function updatePhaseBadge() {
   el.textContent = phase ? (STAGE_LABEL[phase] || phase) : "";
 }
 
-// Build predictions form — only current active phase, skip already-predicted matches
+// Build predictions form — current active phase.
+// Before kickoff (WC_START), already-predicted matches are shown too so the
+// user can change their pick. After kickoff, only unpredicted matches show.
 function buildPredictionsForm() {
   const el = document.getElementById("predictions-form");
   if (!el) return;
@@ -470,17 +472,27 @@ function buildPredictionsForm() {
     return;
   }
 
-  const alreadyPredicted = new Set(
-    _existingParticipant
-      ? _predictions.filter(p => p.participant_id === _existingParticipant.id).map(p => p.match_id)
-      : []
-  );
+  const editableAll = Date.now() < WC_START.getTime();
+
+  const myPreds = _existingParticipant
+    ? _predictions.filter(p => p.participant_id === _existingParticipant.id)
+    : [];
+  const predMap = {};
+  myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
+  const alreadyPredicted = new Set(myPreds.map(p => p.match_id));
 
   const matches = _matches.filter(m =>
     m.stage === phase &&
     m.status !== "FINISHED" &&
-    !alreadyPredicted.has(m.match_id)
+    (editableAll || !alreadyPredicted.has(m.match_id))
   );
+
+  // Pre-fill _matchPreds with existing picks so they're submitted even if untouched
+  for (const m of matches) {
+    if (predMap[m.match_id] && !_matchPreds[m.match_id]) {
+      _matchPreds[m.match_id] = { result: predMap[m.match_id], home: null, away: null };
+    }
+  }
 
   if (!matches.length) {
     const phaseLabel = STAGE_LABEL[phase] || phase;
@@ -502,7 +514,7 @@ function buildPredictionsForm() {
   el.innerHTML = Object.entries(byDay).map(([day, ms]) =>
     `<div class="pred-group">
       <div class="pred-group-header" onclick="toggleGroup(this)">${day} <span>▾</span></div>
-      <div class="pred-group-body">${ms.map(m => predMatchRow(m)).join("")}</div>
+      <div class="pred-group-body">${ms.map(m => predMatchRow(m, predMap[m.match_id])).join("")}</div>
     </div>`
   ).join("");
   applyTwemoji("predictions-form");
@@ -524,18 +536,21 @@ function toggleGroup(header) {
   arrow.textContent  = open ? "▸" : "▾";
 }
 
-function predMatchRow(m) {
+function predMatchRow(m, existing) {
   const hFlag = flag(m.home_team);
   const aFlag = flag(m.away_team);
   const time  = m.kickoff_utc ? toColTime(m.kickoff_utc) : "TBD";
   const tag   = m.group_name ? m.group_name.replace("GROUP_","G.") : (STAGE_LABEL[m.stage] || "");
+  const selH  = existing === "H" ? " selected-H" : "";
+  const selD  = existing === "D" ? " selected-D" : "";
+  const selA  = existing === "A" ? " selected-A" : "";
   return `<div class="pred-match" id="pred-${m.match_id}">
     <div class="pred-match-meta"><span class="pred-time">${time}</span><span class="pred-tag">${tag}</span></div>
     <div class="pred-match-teams">${hFlag} ${esc(m.home_team)} vs ${esc(m.away_team)} ${aFlag}</div>
     <div class="pred-buttons">
-      <button class="pred-btn" onclick="setPred('${m.match_id}','H',this)">${hFlag} ${shortName(m.home_team)}</button>
-      <button class="pred-btn draw" onclick="setPred('${m.match_id}','D',this)">Empate</button>
-      <button class="pred-btn" onclick="setPred('${m.match_id}','A',this)">${shortName(m.away_team)} ${aFlag}</button>
+      <button class="pred-btn${selH}" onclick="setPred('${m.match_id}','H',this)">${hFlag} ${shortName(m.home_team)}</button>
+      <button class="pred-btn draw${selD}" onclick="setPred('${m.match_id}','D',this)">Empate</button>
+      <button class="pred-btn${selA}" onclick="setPred('${m.match_id}','A',this)">${shortName(m.away_team)} ${aFlag}</button>
     </div>
   </div>`;
 }
@@ -604,7 +619,8 @@ async function submitPredictions() {
       }));
 
     if (predRows.length) {
-      const { error: predErr } = await sb.from("predictions").insert(predRows);
+      const { error: predErr } = await sb.from("predictions")
+        .upsert(predRows, { onConflict: "participant_id,match_id" });
       if (predErr) throw new Error(predErr.message);
     }
 
@@ -682,9 +698,15 @@ function loadMyPredictions() {
   const bet     = _specialBets.find(s => s.participant_id === participant.id);
 
   let html = `<div class="my-preds-summary">
+    <div class="avatar" style="margin:0 auto 8px">${participant.photo_url ? `<img src="${participant.photo_url}" alt="">` : (participant.avatar || "⚽")}</div>
+    <div class="player-name">${esc(participant.name)}</div>
     <div class="my-preds-points">${calcPoints(participant.id)}<small>pts totales</small></div>
     <p class="hint">${myPreds.length} pronósticos guardados · ${countCorrect(participant.id)} aciertos</p>
   </div>`;
+
+  if (Date.now() < WC_START.getTime()) {
+    html += `<button class="btn-primary" onclick="editMyPredictions()">✏️ Completar / cambiar mis pronósticos</button>`;
+  }
 
   if (myPreds.length) {
     const sorted = [...myPreds].sort((a, b) => {
@@ -726,6 +748,31 @@ function loadMyPredictions() {
 
   body.innerHTML = html;
   applyTwemoji("my-preds-body");
+}
+
+// Jump straight into step 2 of the join modal to edit/complete predictions
+function editMyPredictions() {
+  const name = (document.getElementById("my-preds-name-input").value || "").trim();
+  const participant = _participants.find(
+    p => p.name.trim().toLowerCase() === name.toLowerCase()
+  );
+  if (!participant) return;
+
+  _existingParticipant = participant;
+  _selectedAvatar      = participant.avatar;
+  _matchPreds          = {};
+
+  document.getElementById("input-name").value = participant.name;
+
+  const bet = _specialBets.find(s => s.participant_id === participant.id);
+  document.getElementById("special-champion").value = bet?.champion  || "";
+  document.getElementById("special-runner").value   = bet?.runner_up || "";
+  document.getElementById("special-scorer").value   = bet?.top_scorer|| "";
+
+  document.getElementById("join-modal").classList.remove("hidden");
+  buildPredictionsForm();
+  updatePhaseBadge();
+  showStep(2);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
