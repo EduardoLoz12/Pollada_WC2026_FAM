@@ -95,4 +95,9 @@ create policy "public read" on scorers         for select using (true);
 create policy "public read" on predictions     for select using (true);
 create policy "public read" on special_bets    for select using (true);
 
--- Writes go through API (service key bypasses RLS — no insert policy needed here)
+-- Browser writes directly (family code validated client-side)
+create policy "public insert" on participants  for insert with check (true);
+create policy "public insert" on predictions   for insert with check (true);
+create policy "public insert" on special_bets  for insert with check (true);
+
+-- Service key (scripts/refresh.py) bypasses RLS for match data updates

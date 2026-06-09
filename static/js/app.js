@@ -466,57 +466,72 @@ function updateScore(matchId) {
   _matchPreds[matchId].away = isNaN(a) ? null : a;
 }
 
-// Submit predictions
+// Submit predictions — writes directly to Supabase from browser
 async function submitPredictions() {
-  const name    = document.getElementById("input-name").value.trim();
-  const code    = document.getElementById("input-code").value.trim();
+  const name     = document.getElementById("input-name").value.trim();
+  const code     = document.getElementById("input-code").value.trim();
   const champion = document.getElementById("special-champion").value.trim();
   const runner   = document.getElementById("special-runner").value.trim();
   const scorer   = document.getElementById("special-scorer").value.trim();
   const btnEl    = document.getElementById("btn-submit");
+  const errEl2   = document.getElementById("error-msg-2");
+
+  // Validate family code client-side
+  if (code !== FAMILY_CODE) {
+    if (errEl2) { errEl2.textContent = "Código familiar incorrecto 🚫"; errEl2.style.display = "block"; }
+    return;
+  }
+  if (errEl2) errEl2.style.display = "none";
 
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Guardando..."; }
 
-  const predictions = Object.entries(_matchPreds)
-    .filter(([, v]) => v.result)
-    .map(([match_id, v]) => ({
-      match_id,
-      pred_result:     v.result,
-      pred_home_score: v.home ?? null,
-      pred_away_score: v.away ?? null,
-    }));
-
   try {
-    const res = await fetch("/api/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        avatar:      _selectedAvatar,
-        family_code: code,
-        predictions,
-        special: { champion, runner_up: runner, top_scorer: scorer },
-      }),
-    });
+    // 1. Insert participant
+    const { data: pRow, error: pErr } = await sb
+      .from("participants")
+      .insert({ name, avatar: _selectedAvatar })
+      .select("id, name")
+      .single();
 
-    const data = await res.json();
+    if (pErr) throw new Error(pErr.message);
+    const pid = pRow.id;
 
-    if (!data.ok) {
-      showError(data.error || "Error al guardar");
-      if (btnEl) { btnEl.disabled = false; btnEl.textContent = "✅ Guardar Pronósticos"; }
-      return;
+    // 2. Insert match predictions
+    const predRows = Object.entries(_matchPreds)
+      .filter(([, v]) => v.result)
+      .map(([match_id, v]) => ({
+        participant_id:  pid,
+        match_id,
+        pred_result:     v.result,
+        pred_home_score: v.home ?? null,
+        pred_away_score: v.away ?? null,
+      }));
+
+    if (predRows.length) {
+      const { error: predErr } = await sb.from("predictions").insert(predRows);
+      if (predErr) throw new Error(predErr.message);
+    }
+
+    // 3. Insert special bets
+    if (champion || runner || scorer) {
+      const { error: sErr } = await sb.from("special_bets").insert({
+        participant_id: pid,
+        champion:       champion || null,
+        runner_up:      runner   || null,
+        top_scorer:     scorer   || null,
+      });
+      if (sErr) throw new Error(sErr.message);
     }
 
     // Success
     showStep(3);
     document.getElementById("success-msg").textContent =
-      `¡${name}, tus ${data.predictions_saved} pronósticos quedaron guardados! Buena suerte 🍀`;
+      `¡${name}, tus ${predRows.length} pronósticos quedaron guardados! Buena suerte 🍀`;
 
-    // Reload data
     await loadAllData();
 
   } catch (err) {
-    showError("Error de conexión. Intenta de nuevo.");
+    if (errEl2) { errEl2.textContent = err.message || "Error al guardar. Intenta de nuevo."; errEl2.style.display = "block"; }
     if (btnEl) { btnEl.disabled = false; btnEl.textContent = "✅ Guardar Pronósticos"; }
   }
 }
