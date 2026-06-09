@@ -556,7 +556,6 @@ async function submitPredictions() {
   const code     = document.getElementById("input-code").value.trim();
   const champion = document.getElementById("special-champion").value.trim();
   const runner   = document.getElementById("special-runner").value.trim();
-  const third    = document.getElementById("special-third").value.trim();
   const scorer   = document.getElementById("special-scorer").value.trim();
   const btnEl    = document.getElementById("btn-submit");
   const errEl2   = document.getElementById("error-msg-2");
@@ -602,12 +601,11 @@ async function submitPredictions() {
     }
 
     // 3. Insert/update special bets
-    if (champion || runner || third || scorer) {
+    if (champion || runner || scorer) {
       const { error: sErr } = await sb.from("special_bets").upsert({
         participant_id: pid,
         champion:       champion || null,
         runner_up:      runner   || null,
-        third_place:    third    || null,
         top_scorer:     scorer   || null,
         updated_at:     new Date().toISOString(),
       }, { onConflict: "participant_id" });
@@ -713,12 +711,11 @@ function showMyPredictions() {
     html += `<p class="hint">Aún no has hecho pronósticos. Toca "⚽ Unirme a la Polla" para empezar.</p>`;
   }
 
-  if (bet && (bet.champion || bet.runner_up || bet.third_place || bet.top_scorer)) {
+  if (bet && (bet.champion || bet.runner_up || bet.top_scorer)) {
     html += `<hr class="divider"><h3 style="font-size:.95rem;color:var(--gold);margin-bottom:8px">🌟 Apuestas Especiales</h3>`;
-    if (bet.champion)    html += `<div class="my-pred-row"><div class="my-pred-match">🏆 Campeón</div><div class="my-pred-pick">${flag(bet.champion)} ${esc(bet.champion)}</div></div>`;
-    if (bet.runner_up)   html += `<div class="my-pred-row"><div class="my-pred-match">🥈 Subcampeón</div><div class="my-pred-pick">${flag(bet.runner_up)} ${esc(bet.runner_up)}</div></div>`;
-    if (bet.third_place) html += `<div class="my-pred-row"><div class="my-pred-match">🥉 Tercer puesto</div><div class="my-pred-pick">${flag(bet.third_place)} ${esc(bet.third_place)}</div></div>`;
-    if (bet.top_scorer)  html += `<div class="my-pred-row"><div class="my-pred-match">⚽ Goleador</div><div class="my-pred-pick">${esc(bet.top_scorer)}</div></div>`;
+    if (bet.champion)   html += `<div class="my-pred-row"><div class="my-pred-match">🏆 Campeón</div><div class="my-pred-pick">${flag(bet.champion)} ${esc(bet.champion)}</div></div>`;
+    if (bet.runner_up)  html += `<div class="my-pred-row"><div class="my-pred-match">🥈 Subcampeón</div><div class="my-pred-pick">${flag(bet.runner_up)} ${esc(bet.runner_up)}</div></div>`;
+    if (bet.top_scorer) html += `<div class="my-pred-row"><div class="my-pred-match">⚽ Goleador</div><div class="my-pred-pick">${esc(bet.top_scorer)}</div></div>`;
   }
 
   body.innerHTML = html;
