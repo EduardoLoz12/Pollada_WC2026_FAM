@@ -662,6 +662,10 @@ async function submitPredictions() {
     }
     document.getElementById("success-msg").textContent = msg;
 
+    document.getElementById("btn-submit-top").textContent = "💾 Guardar y salir";
+    document.getElementById("btn-submit").textContent = "✅ Guardar mis pronósticos";
+    btnEls.forEach(b => { b.disabled = false; });
+
     await loadAllData();
 
   } catch (err) {
