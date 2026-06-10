@@ -59,6 +59,46 @@ header {
   border: 2px solid var(--gold);
   box-shadow: 0 2px 12px rgba(0,0,0,.45);
   animation: mascot-bounce 2.4s ease-in-out infinite;
+  cursor: pointer;
+}
+
+/* ─── Mascot modal ────────────────────────────────────────────────────── */
+#mascot-modal { align-items: center; }
+
+.mascot-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  max-width: 380px;
+  width: 90%;
+  margin: auto;
+  padding: 28px 22px 24px;
+  text-align: center;
+  position: relative;
+  animation: slideUp .25s ease;
+}
+
+.mascot-big {
+  width: 180px;
+  height: 165px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 3px solid var(--gold);
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  margin: 6px auto 16px;
+}
+
+.mascot-sheet h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.mascot-sheet p {
+  font-size: .9rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 18px;
 }
 
 @keyframes mascot-bounce {

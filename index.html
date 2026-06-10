@@ -15,7 +15,7 @@
 
 <!-- ══════════════════ HEADER ══════════════════ -->
 <header>
-  <img src="static/img/mascot.jpg" alt="Mascota Familia Lozada Vargas" class="header-mascot">
+  <img src="static/img/mascot.jpg" alt="Mascota Familia Lozada Vargas" class="header-mascot" onclick="showMascotModal()">
   <span class="header-trophy">🏆</span>
   <h1>Polla Mundialera 2026</h1>
   <p class="header-family">Familia Lozada Vargas</p>
@@ -182,6 +182,17 @@
         🏅 Ver la tabla familiar
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MASCOT MODAL ══════════════════ -->
+<div id="mascot-modal" class="modal-backdrop hidden" onclick="if(event.target.id==='mascot-modal') hideMascotModal()">
+  <div class="mascot-sheet">
+    <button class="modal-close" onclick="hideMascotModal()">✕</button>
+    <img src="static/img/mascot.jpg" alt="Mascota Familia Lozada Vargas" class="mascot-big">
+    <h2>¡Bienvenido a la Polla Mundialera 2026! 🏆</h2>
+    <p>Pronostica los partidos, suma puntos y demuestra quién manda en la Familia Lozada Vargas. ¡Vamos con todo! 💪⚽</p>
+    <button class="btn-primary" onclick="hideMascotModal()">¡Vamos! 🔥</button>
   </div>
 </div>
 

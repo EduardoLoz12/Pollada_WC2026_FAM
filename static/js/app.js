@@ -381,6 +381,15 @@ function hideJoinModal() {
   document.getElementById("join-modal").classList.add("hidden");
 }
 
+// ─── Mascot modal ───────────────────────────────────────────────────────────
+function showMascotModal() {
+  document.getElementById("mascot-modal").classList.remove("hidden");
+}
+
+function hideMascotModal() {
+  document.getElementById("mascot-modal").classList.add("hidden");
+}
+
 function showStep(n) {
   _currentStep = n;
   [1,2,3].forEach(i => {
