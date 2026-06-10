@@ -86,14 +86,6 @@ function showTab(name) {
   document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
   document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
   document.getElementById(`tab-${name}`).classList.add("active");
-
-  if (name === "mispronos") {
-    const saved = localStorage.getItem("wc_participant_name");
-    if (saved) {
-      document.getElementById("my-preds-name-input").value = saved;
-      loadMyPredictions();
-    }
-  }
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────
@@ -636,9 +628,6 @@ async function submitPredictions() {
       if (sErr) throw new Error(sErr.message);
     }
 
-    // Remember who's playing on this device (for "Mis Pronósticos")
-    localStorage.setItem("wc_participant_name", name);
-
     // Success
     showStep(3);
     const phase = getActivePhase();
@@ -691,8 +680,6 @@ function loadMyPredictions() {
       Revisa que el nombre esté escrito igual a como te uniste, o únete primero.</p>`;
     return;
   }
-
-  localStorage.setItem("wc_participant_name", participant.name);
 
   const myPreds = _predictions.filter(p => p.participant_id === participant.id);
   const bet     = _specialBets.find(s => s.participant_id === participant.id);
