@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   startCountdown();
   loadAllData();
   buildAvatarPicker();
+  // Deep-link a tab: e.g. /#tab=partidos
+  const tabMatch = location.hash.match(/^#tab=(\w+)/);
+  if (tabMatch && document.getElementById(`tab-${tabMatch[1]}`)) showTab(tabMatch[1]);
 });
 
 async function loadAllData() {
@@ -252,6 +255,29 @@ function matchCard(m) {
     scoreHtml = `<div class="match-score scheduled">${time}</div>`;
   }
 
+  // Family vote split for this match
+  const votes = _predictions.filter(p => p.match_id === m.match_id);
+  const vH = votes.filter(v => v.pred_result === "H").length;
+  const vD = votes.filter(v => v.pred_result === "D").length;
+  const vA = votes.filter(v => v.pred_result === "A").length;
+  const tot = vH + vD + vA;
+  let votesHtml = "";
+  if (tot > 0) {
+    const pH = (vH / tot) * 100, pD = (vD / tot) * 100, pA = (vA / tot) * 100;
+    votesHtml = `<div class="match-votes">
+      <div class="votes-bar">
+        ${vH ? `<span class="seg h" style="width:${pH}%"></span>` : ""}
+        ${vD ? `<span class="seg d" style="width:${pD}%"></span>` : ""}
+        ${vA ? `<span class="seg a" style="width:${pA}%"></span>` : ""}
+      </div>
+      <div class="votes-labels">
+        <span class="vl-h">${vH} ${esc(shortName(m.home_team))}</span>
+        <span class="vl-d">${vD} Empate</span>
+        <span class="vl-a">${vA} ${esc(shortName(m.away_team))}</span>
+      </div>
+    </div>`;
+  }
+
   return `<div class="match-card">
     <div class="match-stage-badge">${badge}${grp}</div>
     <div class="match-teams">
@@ -265,6 +291,7 @@ function matchCard(m) {
         <span class="team-name">${esc(m.away_team)}</span>
       </div>
     </div>
+    ${votesHtml}
   </div>`;
 }
 
@@ -487,9 +514,12 @@ function buildPredictionsForm() {
   myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
   const alreadyPredicted = new Set(myPreds.map(p => p.match_id));
 
+  const now = Date.now();
   const matches = _matches.filter(m =>
     m.stage === phase &&
     m.status !== "FINISHED" &&
+    // a match locks the moment it kicks off — no predicting started games
+    (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > now) &&
     (editableAll || !alreadyPredicted.has(m.match_id))
   );
 
@@ -613,9 +643,14 @@ async function submitPredictions() {
       pid = pRow.id;
     }
 
-    // 2. Insert match predictions
+    // 2. Insert match predictions (drop any match that already kicked off)
+    const nowMs = Date.now();
     const predRows = Object.entries(_matchPreds)
       .filter(([, v]) => v.result)
+      .filter(([match_id]) => {
+        const m = _matches.find(x => x.match_id === match_id);
+        return m && (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > nowMs);
+      })
       .map(([match_id, v]) => ({
         participant_id:  pid,
         match_id,
@@ -729,6 +764,10 @@ function loadMyPredictions() {
   if (Date.now() < WC_START.getTime()) {
     html += `<button class="btn-edit-preds" onclick="editMyPredictions()">✏️ Editar Pronósticos</button>
     <p class="hint" style="text-align:center;margin-top:6px">Puedes editar tus pronósticos hasta que arranque el Mundial.</p>`;
+  } else {
+    // Tournament started: existing picks are locked, but new-phase matches can still be filled
+    html += `<button class="btn-edit-preds" onclick="editMyPredictions()">📋 Llenar pronósticos pendientes</button>
+    <p class="hint" style="text-align:center;margin-top:6px">Los pronósticos de partidos ya iniciados están cerrados. Solo puedes llenar partidos que aún no empiezan.</p>`;
   }
 
   if (myPreds.length) {

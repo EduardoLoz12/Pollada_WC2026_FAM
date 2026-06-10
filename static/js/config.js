@@ -15,8 +15,8 @@ window.POINTS = {
   top_scorer:        5,
 };
 
-// ─── First WC match (Colombia time UTC-5) ────────────────────────────────────
-window.WC_START = new Date("2026-06-11T19:00:00-05:00");
+// ─── First WC match: 2026-06-11 19:00 UTC = 2:00 PM Colombia (per football-data.org)
+window.WC_START = new Date("2026-06-11T19:00:00Z");
 
 // ─── Available emojis for avatar picker (no flags — use fun emojis only) ─────
 window.AVATARS = [

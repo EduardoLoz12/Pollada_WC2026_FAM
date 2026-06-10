@@ -822,6 +822,32 @@ input[type="number"]:focus {
   color: var(--green);
 }
 
+/* ─── Match vote split (family predictions per match) ─────────────────── */
+.match-votes { margin-top: 10px; }
+
+.votes-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--card);
+  gap: 1px;
+}
+.votes-bar .seg.h { background: var(--blue); }
+.votes-bar .seg.d { background: var(--gold); }
+.votes-bar .seg.a { background: var(--red); }
+
+.votes-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: .68rem;
+  font-weight: 600;
+}
+.votes-labels .vl-h { color: var(--blue); }
+.votes-labels .vl-d { color: var(--gold); }
+.votes-labels .vl-a { color: var(--red); }
+
 /* Step nav */
 .step-indicator {
   display: flex;
