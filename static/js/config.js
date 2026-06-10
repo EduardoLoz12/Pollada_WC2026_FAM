@@ -21,7 +21,7 @@ window.WC_START = new Date("2026-06-11T19:00:00-05:00");
 // ─── Available emojis for avatar picker (no flags — use fun emojis only) ─────
 window.AVATARS = [
   // Trofeos y deportes
-  "🏆","🥇","🥈","🥉","🎯","⚽","🏅","🎖️",
+  "🏆","🎯","⚽","🏅","🎖️",
   // Fuego y poder
   "🔥","⭐","💪","👑","⚡","💎","🌟","🚀",
   // Animales
