@@ -703,7 +703,8 @@ function loadMyPredictions() {
   </div>`;
 
   if (Date.now() < WC_START.getTime()) {
-    html += `<button class="btn-primary" onclick="editMyPredictions()">✏️ Completar / cambiar mis pronósticos</button>`;
+    html += `<button class="btn-edit-preds" onclick="editMyPredictions()">✏️ Editar Pronósticos</button>
+    <p class="hint" style="text-align:center;margin-top:6px">Puedes editar tus pronósticos hasta que arranque el Mundial.</p>`;
   }
 
   if (myPreds.length) {

@@ -787,6 +787,22 @@ input[type="number"]:focus {
 
 .btn-secondary:hover { border-color: var(--muted); }
 
+.btn-edit-preds {
+  display: block;
+  margin: 12px auto 0;
+  background: var(--card);
+  border: 1.5px solid var(--gold);
+  border-radius: 18px;
+  color: var(--gold);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 700;
+  padding: 8px 18px;
+  transition: background .12s;
+}
+
+.btn-edit-preds:active { background: rgba(245,166,35,.12); }
+
 /* Step nav */
 .step-indicator {
   display: flex;
