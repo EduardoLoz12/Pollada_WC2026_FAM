@@ -706,6 +706,21 @@ function loadMyPredictions() {
     <p class="hint">${myPreds.length} pronósticos guardados · ${countCorrect(participant.id)} aciertos</p>
   </div>`;
 
+  // Alert: how many matches are missing for the active phase
+  const activePhase = getActivePhase();
+  if (activePhase) {
+    const predictedIds = new Set(myPreds.map(p => p.match_id));
+    const remaining = _matches.filter(m =>
+      m.stage === activePhase && m.status !== "FINISHED" && !predictedIds.has(m.match_id)
+    ).length;
+    const phaseLabel = STAGE_LABEL[activePhase] || activePhase;
+    if (remaining > 0) {
+      html += `<div class="preds-alert warn">⚠️ Te faltan <strong>${remaining}</strong> pronóstico${remaining === 1 ? "" : "s"} de ${phaseLabel} por completar.</div>`;
+    } else {
+      html += `<div class="preds-alert ok">✅ ¡Tienes todos tus pronósticos de ${phaseLabel} completos!</div>`;
+    }
+  }
+
   if (Date.now() < WC_START.getTime()) {
     html += `<button class="btn-edit-preds" onclick="editMyPredictions()">✏️ Editar Pronósticos</button>
     <p class="hint" style="text-align:center;margin-top:6px">Puedes editar tus pronósticos hasta que arranque el Mundial.</p>`;
