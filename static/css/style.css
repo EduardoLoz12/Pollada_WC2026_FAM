@@ -726,9 +726,9 @@ input[type="number"]:focus {
   transition: all .12s;
 }
 
-.pred-btn.selected-H { border-color: var(--blue);  background: rgba(52,152,219,.2); color: var(--blue); }
-.pred-btn.selected-D { border-color: var(--gold);  background: rgba(245,166,35,.2); color: var(--gold); }
-.pred-btn.selected-A { border-color: var(--red);   background: rgba(231,76,60,.2);  color: var(--red); }
+.pred-btn.selected-H,
+.pred-btn.selected-D,
+.pred-btn.selected-A { border-color: var(--green); background: rgba(46,204,113,.2); color: var(--green); }
 
 .score-inputs {
   display: flex;
@@ -768,6 +768,8 @@ input[type="number"]:focus {
 }
 
 .btn-primary:active { transform: scale(.98); opacity: .9; }
+
+#btn-submit-top { margin-bottom: 18px; }
 
 .btn-secondary {
   background: var(--card);

@@ -143,9 +143,9 @@
       <h2>📋 Mis Pronósticos <span id="phase-badge" class="phase-badge-inline"></span></h2>
       <p class="hint">Selecciona el ganador de cada partido. No tienes que terminar todo ahora: guarda lo que llenes y vuelve cuando quieras para completar o cambiar tus pronósticos, hasta que arranque el Mundial.</p>
 
-      <div id="predictions-form"></div>
-
-      <hr class="divider">
+      <button id="btn-submit-top" class="btn-primary btn-save-action" onclick="submitPredictions()">
+        💾 Guardar y salir
+      </button>
 
       <div class="special-section">
         <h3>🌟 Apuestas Especiales</h3>
@@ -163,9 +163,13 @@
         <datalist id="teams-list"></datalist>
       </div>
 
+      <hr class="divider">
+
+      <div id="predictions-form"></div>
+
       <div class="error-msg" id="error-msg-2"></div>
 
-      <button id="btn-submit" class="btn-primary" onclick="submitPredictions()">
+      <button id="btn-submit" class="btn-primary btn-save-action" onclick="submitPredictions()">
         ✅ Guardar mis pronósticos
       </button>
       <button class="btn-secondary" onclick="showStep(1)">← Atrás</button>

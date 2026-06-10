@@ -581,7 +581,7 @@ async function submitPredictions() {
   const champion = document.getElementById("special-champion").value.trim();
   const runner   = document.getElementById("special-runner").value.trim();
   const scorer   = document.getElementById("special-scorer").value.trim();
-  const btnEl    = document.getElementById("btn-submit");
+  const btnEls   = document.querySelectorAll(".btn-save-action");
   const errEl2   = document.getElementById("error-msg-2");
 
   // Validate family code client-side
@@ -591,7 +591,7 @@ async function submitPredictions() {
   }
   if (errEl2) errEl2.style.display = "none";
 
-  if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Guardando..."; }
+  btnEls.forEach(b => { b.disabled = true; b.textContent = "Guardando..."; });
 
   try {
     // 1. Get or create participant
@@ -666,7 +666,9 @@ async function submitPredictions() {
 
   } catch (err) {
     if (errEl2) { errEl2.textContent = err.message || "Error al guardar. Intenta de nuevo."; errEl2.style.display = "block"; }
-    if (btnEl) { btnEl.disabled = false; btnEl.textContent = "✅ Guardar Pronósticos"; }
+    document.getElementById("btn-submit-top").textContent = "💾 Guardar y salir";
+    document.getElementById("btn-submit").textContent = "✅ Guardar mis pronósticos";
+    btnEls.forEach(b => { b.disabled = false; });
   }
 }
 
