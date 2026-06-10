@@ -100,4 +100,8 @@ create policy "public insert" on participants  for insert with check (true);
 create policy "public insert" on predictions   for insert with check (true);
 create policy "public insert" on special_bets  for insert with check (true);
 
+-- Allow editing existing predictions/special bets (needed for upsert on conflict)
+create policy "public update" on predictions   for update using (true) with check (true);
+create policy "public update" on special_bets  for update using (true) with check (true);
+
 -- Service key (scripts/refresh.py) bypasses RLS for match data updates
