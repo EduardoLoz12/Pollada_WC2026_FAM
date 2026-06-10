@@ -366,7 +366,7 @@ async function renderScorers() {
 }
 
 // ─── Join modal ───────────────────────────────────────────────────────────
-function showJoinModal() {
+async function showJoinModal() {
   _matchPreds          = {};
   _currentStep         = 1;
   _existingParticipant = null;
@@ -374,7 +374,12 @@ function showJoinModal() {
   document.getElementById("input-name").value = "";
   document.getElementById("error-msg").style.display = "none";
   showStep(1);
-  buildAvatarPicker();  // rebuild with current taken list
+
+  // Refresh participants so the avatar picker reflects avatars taken
+  // by others since this page was loaded (avoids duplicate-avatar race).
+  const { data } = await sb.from("participants").select("*").order("created_at");
+  if (data) _participants = data;
+  buildAvatarPicker();
 }
 
 function hideJoinModal() {
