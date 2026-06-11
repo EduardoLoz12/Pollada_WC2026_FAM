@@ -30,16 +30,27 @@ document.addEventListener("DOMContentLoaded", () => {
   if (tabMatch && document.getElementById(`tab-${tabMatch[1]}`)) showTab(tabMatch[1]);
 });
 
+// Supabase caps each request at 1000 rows — predictions exceed that
+// (19+ participants × 72 matches), so page through the whole table.
+async function fetchAllPredictions() {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from("predictions").select("*").range(from, from + 999);
+    all.push(...(data || []));
+    if (!data || data.length < 1000) return all;
+  }
+}
+
 async function loadAllData() {
   const [matches, participants, predictions, specials] = await Promise.all([
     sb.from("wc_matches").select("*").order("kickoff_utc"),
     sb.from("participants").select("*").order("created_at"),
-    sb.from("predictions").select("*"),
+    fetchAllPredictions(),
     sb.from("special_bets").select("*"),
   ]);
   _matches      = matches.data      || [];
   _participants = participants.data || [];
-  _predictions  = predictions.data  || [];
+  _predictions  = predictions      || [];
   _specialBets  = specials.data     || [];
 
   renderLeaderboard();
