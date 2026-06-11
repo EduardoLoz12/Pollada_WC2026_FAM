@@ -161,14 +161,24 @@ def refresh_standings():
     print("Fetching standings...")
     data = fd_get("competitions/WC/standings")
     now  = datetime.now(timezone.utc).isoformat()
+
+    # The 2026 API returns standings as one big table with group=None,
+    # so derive each team's group from the fixtures already in the DB.
+    team_group = {}
+    for r in sb_get("wc_matches?select=home_team,away_team,group_name&group_name=not.is.null"):
+        if r["home_team"]: team_group[r["home_team"]] = r["group_name"]
+        if r["away_team"]: team_group[r["away_team"]] = r["group_name"]
+
     rows = []
     for block in (data.get("standings") or []):
-        group_raw = block.get("group", "") or ""
-        gname = map_group(group_raw) or group_raw.upper().replace(" ","_")
-        if not gname:
-            continue
+        if (block.get("type") or "TOTAL") != "TOTAL":
+            continue  # skip HOME/AWAY splits
+        block_group = map_group(block.get("group") or "")
         for entry in (block.get("table") or []):
             team = entry.get("team", {})
+            gname = block_group or team_group.get(team.get("name", ""))
+            if not gname:
+                continue
             rows.append({
                 "group_name":    gname,
                 "position":      entry.get("position"),
