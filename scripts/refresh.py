@@ -26,11 +26,20 @@ SB_HEADERS = {
 
 
 def fd_get(endpoint, params=None):
+    # football-data load-balances across replicas and some lag by hours;
+    # Cache-Control: no-cache improves the odds of hitting a fresh one.
     p = {"season": "2026", **(params or {})}
     r = requests.get(
         f"{FD_BASE}/{endpoint.lstrip('/')}",
-        headers=FD_HEADERS, params=p, timeout=25, verify=False,
+        headers={**FD_HEADERS, "Cache-Control": "no-cache"},
+        params=p, timeout=25, verify=False,
     )
+    r.raise_for_status()
+    return r.json()
+
+
+def sb_get(path):
+    r = requests.get(f"{SB_URL}/rest/v1/{path}", headers=SB_HEADERS)
     r.raise_for_status()
     return r.json()
 
@@ -85,10 +94,34 @@ def winner(h, a, status):
 
 # ─── Refresh functions ────────────────────────────────────────────────────────
 
+STATUS_RANK = {"SCHEDULED": 0, "IN_PLAY": 1, "FINISHED": 2}
+
+
+def _match_rank(m):
+    """How 'advanced' a raw API match payload is — used to pick the freshest replica."""
+    st_raw = m.get("status", "SCHEDULED")
+    st = "IN_PLAY" if st_raw in ("IN_PLAY", "PAUSED") else ("FINISHED" if st_raw in ("FINISHED", "AWARDED") else "SCHEDULED")
+    ft = (m.get("score") or {}).get("fullTime") or {}
+    goals = (ft.get("home") or 0) + (ft.get("away") or 0)
+    return (STATUS_RANK[st], goals)
+
+
 def refresh_matches():
     print("Fetching fixtures...")
-    data = fd_get("competitions/WC/matches")
-    matches = data.get("matches", [])
+    # Fetch several times and keep the most advanced version of each match —
+    # football-data load-balances across replicas and some serve data hours
+    # behind; more attempts = better odds of hitting a fresh one.
+    matches_by_id = {}
+    for _ in range(4):
+        for m in fd_get("competitions/WC/matches").get("matches", []):
+            prev = matches_by_id.get(m["id"])
+            if prev is None or _match_rank(m) > _match_rank(prev):
+                matches_by_id[m["id"]] = m
+    matches = list(matches_by_id.values())
+
+    # Never downgrade what's already in the DB (stale replica protection)
+    existing = {r["match_id"]: r for r in sb_get("wc_matches?select=match_id,status,home_score")}
+
     now  = datetime.now(timezone.utc).isoformat()
     rows = []
     for m in matches:
@@ -100,6 +133,11 @@ def refresh_matches():
         st = "IN_PLAY" if st_raw in ("IN_PLAY","PAUSED") else ("FINISHED" if st_raw in ("FINISHED","AWARDED") else "SCHEDULED")
         stage_raw = m.get("stage", "") or m.get("round", "") or ""
         group_raw = m.get("group", "") or stage_raw
+        ex = existing.get(str(m["id"]))
+        if ex and STATUS_RANK.get(st, 0) < STATUS_RANK.get(ex.get("status"), 0):
+            continue  # stale replica tried to downgrade this match — skip
+        if ex and st == ex.get("status") and hs is None and ex.get("home_score") is not None:
+            continue  # same status but would wipe an existing score — skip
         rows.append({
             "match_id":    str(m["id"]),
             "home_team":   (m.get("homeTeam") or {}).get("name") or "TBD",
