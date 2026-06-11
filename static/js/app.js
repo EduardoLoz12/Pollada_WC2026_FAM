@@ -74,7 +74,7 @@ function startCountdown() {
       if (!next) { el.textContent = "¡El Mundial está en curso! 🔥"; return; }
       const t = new Date(next.kickoff_utc);
       const d2 = t - now;
-      if (d2 <= 0) { el.textContent = "¡Partido en curso! 🔴"; return; }
+      if (d2 <= 0) { el.textContent = "¡El Mundial 2026 ha empezado! 🔥⚽"; return; }
       el.innerHTML = `Próximo partido en ${fmtDiff(d2)}`;
     } else {
       el.innerHTML = `El Mundial arranca en: ${fmtDiff(diff)}`;
