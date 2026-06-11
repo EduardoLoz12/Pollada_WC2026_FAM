@@ -157,6 +157,17 @@ header h1 {
 
 .btn-join:active { transform: scale(.97); }
 
+.join-closed {
+  display: inline-block;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  color: var(--gold2);
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 9px 20px;
+}
+
 /* ─── Tabs ────────────────────────────────────────────────────────────── */
 .tabs {
   display: flex;

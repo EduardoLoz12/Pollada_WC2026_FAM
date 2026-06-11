@@ -490,6 +490,12 @@ function nextStep() {
     p => p.name.trim().toLowerCase() === name.toLowerCase()
   ) || null;
 
+  // Registrations are closed — only existing members may continue (to edit)
+  if (!_existingParticipant) {
+    showError("Inscripciones cerradas 🔒 Solo miembros registrados pueden editar sus pronósticos.");
+    return;
+  }
+
   errEl.style.display = "none";
   buildPredictionsForm();  // rebuild for current phase / existing preds
   updatePhaseBadge();
@@ -636,19 +642,11 @@ async function submitPredictions() {
   btnEls.forEach(b => { b.disabled = true; b.textContent = "Guardando..."; });
 
   try {
-    // 1. Get or create participant
-    let pid;
-    if (_existingParticipant) {
-      pid = _existingParticipant.id;
-    } else {
-      const { data: pRow, error: pErr } = await sb
-        .from("participants")
-        .insert({ name, avatar: _selectedAvatar })
-        .select("id, name")
-        .single();
-      if (pErr) throw new Error(pErr.message);
-      pid = pRow.id;
+    // 1. Registrations closed — only existing participants can save
+    if (!_existingParticipant) {
+      throw new Error("Inscripciones cerradas 🔒 Solo miembros registrados pueden guardar.");
     }
+    const pid = _existingParticipant.id;
 
     // 2. Insert match predictions (drop any match that already kicked off)
     const nowMs = Date.now();
