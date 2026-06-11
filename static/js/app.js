@@ -504,8 +504,8 @@ function updatePhaseBadge() {
 }
 
 // Build predictions form — current active phase.
-// Before kickoff (WC_START), already-predicted matches are shown too so the
-// user can change their pick. After kickoff, only unpredicted matches show.
+// Every not-yet-started match is editable at any time; a match locks
+// individually the moment it kicks off.
 function buildPredictionsForm() {
   const el = document.getElementById("predictions-form");
   if (!el) return;
@@ -516,22 +516,18 @@ function buildPredictionsForm() {
     return;
   }
 
-  const editableAll = Date.now() < WC_START.getTime();
-
   const myPreds = _existingParticipant
     ? _predictions.filter(p => p.participant_id === _existingParticipant.id)
     : [];
   const predMap = {};
   myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
-  const alreadyPredicted = new Set(myPreds.map(p => p.match_id));
 
+  // Editing is always open — only matches already kicked off are locked out
   const now = Date.now();
   const matches = _matches.filter(m =>
     m.stage === phase &&
     m.status !== "FINISHED" &&
-    // a match locks the moment it kicks off — no predicting started games
-    (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > now) &&
-    (editableAll || !alreadyPredicted.has(m.match_id))
+    (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > now)
   );
 
   // Pre-fill _matchPreds with existing picks so they're submitted even if untouched
@@ -772,14 +768,8 @@ function loadMyPredictions() {
     }
   }
 
-  if (Date.now() < WC_START.getTime()) {
-    html += `<button class="btn-edit-preds" onclick="editMyPredictions()">✏️ Editar Pronósticos</button>
-    <p class="hint" style="text-align:center;margin-top:6px">Puedes editar tus pronósticos hasta que arranque el Mundial.</p>`;
-  } else {
-    // Tournament started: existing picks are locked, but new-phase matches can still be filled
-    html += `<button class="btn-edit-preds" onclick="editMyPredictions()">📋 Llenar pronósticos pendientes</button>
-    <p class="hint" style="text-align:center;margin-top:6px">Los pronósticos de partidos ya iniciados están cerrados. Solo puedes llenar partidos que aún no empiezan.</p>`;
-  }
+  html += `<button class="btn-edit-preds" onclick="editMyPredictions()">✏️ Editar Pronósticos</button>
+  <p class="hint" style="text-align:center;margin-top:6px">Puedes editar y agregar pronósticos en cualquier momento. Los partidos que ya empezaron quedan bloqueados.</p>`;
 
   if (myPreds.length) {
     const sorted = [...myPreds].sort((a, b) => {
