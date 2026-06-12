@@ -5,7 +5,12 @@ Family World Cup 2026 prediction app. Static frontend on Vercel + Supabase Postg
 - **Live site:** https://pollada-wc-2026-fam.vercel.app/
 - **Repo:** https://github.com/EduardoLoz12/Pollada_WC2026_FAM (branch `main`, push = auto-deploy on Vercel)
 - **Family code:** `LozadaVargas2026` (in `static/js/config.js`, validated client-side)
-- **WC kickoff:** `WC_START` in `static/js/config.js` = 2026-06-11 19:00 Colombia time
+- **WC kickoff:** `WC_START` in `static/js/config.js` = 2026-06-11T19:00:00Z (**UTC**, = 2pm Colombia; football-data times are UTC — never hardcode Colombia time)
+- **Prize:** S/ 500 for the winner (gold pulsing badge in header)
+- **Registrations CLOSED** (v1.0.6): join button replaced by badge; `nextStep`/`submitPredictions` reject names not already in `participants`. Existing members edit freely — each match locks individually at its kickoff (no global edit deadline).
+
+## RULE: version bump on every push
+Every push must increment `<div class="footer-version">vX.Y.Z</div>` in index.html (v1.0.9 as of 2026-06-12). It's how Eduardo verifies which build is live.
 
 ## Stack
 - Frontend: plain HTML/CSS/JS — `index.html`, `static/js/app.js`, `static/css/style.css`, `static/js/config.js`
@@ -46,17 +51,38 @@ Run with `python3` (bash), not the PowerShell `python` (different/restricted ins
 ## Schema/data changes (need service_role / SQL Editor — not available locally)
 Anon key cannot run DDL (CREATE POLICY, ALTER TABLE) or UPDATE on `participants`. For these, give the user a ready-to-paste SQL snippet for Supabase SQL Editor (https://supabase.com/dashboard → project izjbpheewbfshotjsgim → SQL Editor). Don't try to find/use a service key — it doesn't run DDL via REST anyway.
 
-## Live refresh (server cron, not yet wired for 2026 fixtures)
-- `scripts/refresh.py` — pulls fixtures/results/standings/scorers from football-data.org (`FOOTBALL_DATA_KEY`) and upserts into Supabase using `SUPABASE_SERVICE_KEY`. Runs on the server (5.78.236.186, see `.env`).
+## Live refresh (server cron — LIVE and battle-tested)
+- `scripts/refresh.py` — pulls fixtures/results/standings/scorers from football-data.org (`FOOTBALL_DATA_KEY`) and upserts into Supabase using `SUPABASE_SERVICE_KEY`. Cron on 5.78.236.186: `*/10 * * * *` → `/opt/worldcup`, log `/var/log/wc_refresh.log`. Deploy = SFTP the file to `/opt/worldcup/scripts/` via paramiko (creds in `.env`); the server copy is NOT a git checkout.
+- **football-data.org quirks (all already mitigated in refresh.py — don't undo):**
+  - Load-balanced replicas, some serve data HOURS stale (live match stuck on TIMED). Mitigation: fetch fixtures 4x keeping most advanced version per match (`_match_rank`), plus never downgrade DB status (SCHEDULED < IN_PLAY < FINISHED) or wipe scores.
+  - Intermittent `ConnectionError` (drops connections). Mitigation: `fd_get` retries 3x with backoff; `main()` runs matches/standings/scorers independently.
+  - 2026 standings endpoint returns ONE 48-team table with `group: None` (+ HOME/AWAY blocks to skip). Mitigation: derive each team's group from `wc_matches` fixtures.
+  - Status often flips to FINISHED several minutes after the real final whistle — "no update" reports right after a match are usually source lag, not a bug. Verify API directly before touching anything.
+- **Supabase upsert trap:** `group_standings` has a random-uuid PK and unique(group_name, team) — upsert MUST pass `?on_conflict=group_name,team` or it silently writes nothing (matches work without it because match_id is a natural PK).
 - `python/export_excel.py` — exports Supabase data to `polla_mundialera.xlsx` (leaderboard, predictions, matches, groups, scorers).
 
 ## Frontend structure (`static/js/app.js`)
-- `loadAllData()` — fetches matches/participants/predictions/special_bets, renders everything
-- `renderLeaderboard()` / `calcPoints()` — points: 2 (correct result) + 3 (knockout bonus, non-group stage) + 10/5/5 (champion/runner-up/scorer special bets), see `POINTS` in config.js
-- Tabs: Tabla, Partidos, Grupos, Goleadores, Mis Pronósticos
-- "Mis Pronósticos" tab: type name → shows saved picks + remaining-predictions alert + "✏️ Editar Pronósticos" button (editable until `WC_START`)
-- Join modal (3 steps): name+avatar → predictions+special bets → success. Avatar picker excludes medal emojis (🥇🥈🥉, reserved for leaderboard ranks) and refetches `_participants` on open to avoid duplicate-avatar races.
+- `loadAllData()` — fetches matches/participants/predictions/special_bets, renders everything. Predictions load via `fetchAllPredictions()` which **pages in 1000-row chunks** — Supabase caps every request at 1000 rows and the table passed that (caused leaderboard undercount bug, v1.0.2). Points/leaderboard recompute client-side on every page load; no server push.
+- `renderLeaderboard()` / `calcPoints()` — points: 2 (correct result) + 3 (knockout bonus, non-group stage) + 10/5/5 (champion/runner-up/scorer special bets), see `POINTS` in config.js. Points only count when match status is FINISHED.
+- Tabs: Tabla, Partidos, Grupos, Goleadores, Mis Pronósticos. Deep-link with `/#tab=<name>` (e.g. `#tab=partidos`).
+- Partidos tab: each match card shows family vote split (H/D/A counts + colored bar) computed from `_predictions`.
+- "Mis Pronósticos" tab: type name → saved picks + remaining-predictions alert + "✏️ Editar Pronósticos" button (always visible; form only offers matches whose kickoff is in the future).
+- Join modal (3 steps) now only serves existing members (registrations closed). Avatar picker excludes medal emojis (🥇🥈🥉, reserved for leaderboard ranks) and refetches `_participants` on open to avoid duplicate-avatar races.
+- Mascot (`static/img/mascot.jpg`, Eduardo cartoon): bouncing circle top-right of header; click → welcome modal.
+
+## Debug history (bugs already found & fixed — check here before re-diagnosing)
+- v1.0.1: WC_START was 19:00 Colombia instead of UTC (countdown 5h late, lockout open 5h too long).
+- v1.0.2: Supabase 1000-row cap truncated predictions → leaderboard undercounted ("Claudia case").
+- v1.0.5: standings never populated (group=None mapping).
+- v1.0.8: cron died on football-data ConnectionError (no retry).
+- v1.0.9: group_standings upsert silently no-op (missing on_conflict) → Grupos tab frozen.
+- RLS: predictions/special_bets needed UPDATE policies for edit-upsert ("Algo se rompió" case).
+- Duplicate avatars (Carlos/Cinthya both 👑): stale `_participants` race, fixed by refetch on modal open; data fixed via SQL Editor.
+
+## Agente DIAGNOSTIC
+`C:\Users\eduar\.claude\agents\diagnostic.md` — bug-hunter agent for Eduardo's web projects/servers. Spawn it for "X se rompió / no se guardó / audita antes de lanzar". It reads this CLAUDE.md + queries production directly.
 
 ## Known loose ends
 - Untracked files in repo root (`*.webp`, `WhatsApp Image *.jpeg`) — leftovers, not referenced anywhere, safe to delete.
 - `updateScore()` in app.js and `POINTS.exact_score_bonus` in config.js are dead code (no exact-score UI).
+- Pre-WC participants without special bets: Nelly, Carlos Lozada (still empty as of WC start).
