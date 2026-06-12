@@ -54,12 +54,19 @@ def sb_get(path):
     return r.json()
 
 
-def sb_upsert(table, rows):
+def sb_upsert(table, rows, on_conflict=None):
+    # on_conflict is required when the dedupe key is a unique constraint
+    # rather than the primary key (e.g. group_standings uses a random uuid
+    # PK, so without it the upsert hits the unique index and writes nothing).
     if not rows:
         return 0
-    r = requests.post(f"{SB_URL}/rest/v1/{table}", headers=SB_HEADERS, json=rows)
+    url = f"{SB_URL}/rest/v1/{table}"
+    if on_conflict:
+        url += f"?on_conflict={on_conflict}"
+    r = requests.post(url, headers=SB_HEADERS, json=rows)
     if not r.ok:
         print(f"  [supabase ERR] {table}: {r.status_code} {r.text[:200]}", file=sys.stderr)
+        return 0
     return len(rows)
 
 
@@ -210,7 +217,7 @@ def refresh_standings():
                 "points":        entry.get("points",      0),
                 "last_updated":  now,
             })
-    n = sb_upsert("group_standings", rows)
+    n = sb_upsert("group_standings", rows, on_conflict="group_name,team")
     print(f"  {n} posiciones actualizadas")
     return n
 
