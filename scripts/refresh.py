@@ -28,14 +28,24 @@ SB_HEADERS = {
 def fd_get(endpoint, params=None):
     # football-data load-balances across replicas and some lag by hours;
     # Cache-Control: no-cache improves the odds of hitting a fresh one.
+    # It also drops connections intermittently — retry with backoff so one
+    # hiccup doesn't kill the whole cron run.
+    import time
     p = {"season": "2026", **(params or {})}
-    r = requests.get(
-        f"{FD_BASE}/{endpoint.lstrip('/')}",
-        headers={**FD_HEADERS, "Cache-Control": "no-cache"},
-        params=p, timeout=25, verify=False,
-    )
-    r.raise_for_status()
-    return r.json()
+    last_err = None
+    for attempt in range(3):
+        try:
+            r = requests.get(
+                f"{FD_BASE}/{endpoint.lstrip('/')}",
+                headers={**FD_HEADERS, "Cache-Control": "no-cache"},
+                params=p, timeout=25, verify=False,
+            )
+            r.raise_for_status()
+            return r.json()
+        except requests.RequestException as e:
+            last_err = e
+            time.sleep(3 * (attempt + 1))
+    raise last_err
 
 
 def sb_get(path):
@@ -113,11 +123,18 @@ def refresh_matches():
     # behind; more attempts = better odds of hitting a fresh one.
     matches_by_id = {}
     for _ in range(4):
-        for m in fd_get("competitions/WC/matches").get("matches", []):
+        try:
+            batch = fd_get("competitions/WC/matches").get("matches", [])
+        except Exception as e:
+            print(f"  [warn] fetch attempt failed: {e}", file=sys.stderr)
+            continue
+        for m in batch:
             prev = matches_by_id.get(m["id"])
             if prev is None or _match_rank(m) > _match_rank(prev):
                 matches_by_id[m["id"]] = m
     matches = list(matches_by_id.values())
+    if not matches:
+        raise RuntimeError("all fixture fetch attempts failed")
 
     # Never downgrade what's already in the DB (stale replica protection)
     existing = {r["match_id"]: r for r in sb_get("wc_matches?select=match_id,status,home_score")}
@@ -235,7 +252,10 @@ if __name__ == "__main__":
     if not SB_KEY or SB_KEY == "PENDING":
         sys.exit("ERROR: SUPABASE_SERVICE_KEY no configurado en .env")
 
-    refresh_matches()
-    refresh_standings()
-    refresh_scorers()
+    # Each section independent — one failure must not block the others
+    for fn in (refresh_matches, refresh_standings, refresh_scorers):
+        try:
+            fn()
+        except Exception as e:
+            print(f"  [ERR] {fn.__name__}: {e}", file=sys.stderr)
     print("\nOK Refresh completo:", datetime.now().strftime("%d/%m/%Y %H:%M"))
