@@ -636,8 +636,20 @@ async function submitPredictions() {
   btnEls.forEach(b => { b.disabled = true; b.textContent = "Guardando..."; });
 
   try {
-    // 1. Get participant ID (existing or newly registered)
-    const pid = _existingParticipant ? _existingParticipant.id : null;
+    // 1. Get participant ID — insert new participant if first time
+    let pid;
+    if (_existingParticipant) {
+      pid = _existingParticipant.id;
+    } else {
+      const { data: newP, error: pErr } = await sb.from("participants")
+        .insert({ name })
+        .select("id")
+        .single();
+      if (pErr) throw new Error(pErr.message);
+      pid = newP.id;
+      // Cache so success message and subsequent calls work
+      _existingParticipant = { id: pid, name };
+    }
 
     // 2. Insert match predictions (drop any match that already kicked off)
     const nowMs = Date.now();
