@@ -490,12 +490,6 @@ function nextStep() {
     p => p.name.trim().toLowerCase() === name.toLowerCase()
   ) || null;
 
-  // Registrations are closed — only existing members may continue (to edit)
-  if (!_existingParticipant) {
-    showError("Inscripciones cerradas 🔒 Solo miembros registrados pueden editar sus pronósticos.");
-    return;
-  }
-
   errEl.style.display = "none";
   buildPredictionsForm();  // rebuild for current phase / existing preds
   updatePhaseBadge();
