@@ -636,11 +636,8 @@ async function submitPredictions() {
   btnEls.forEach(b => { b.disabled = true; b.textContent = "Guardando..."; });
 
   try {
-    // 1. Registrations closed — only existing participants can save
-    if (!_existingParticipant) {
-      throw new Error("Inscripciones cerradas 🔒 Solo miembros registrados pueden guardar.");
-    }
-    const pid = _existingParticipant.id;
+    // 1. Get participant ID (existing or newly registered)
+    const pid = _existingParticipant ? _existingParticipant.id : null;
 
     // 2. Insert match predictions (drop any match that already kicked off)
     const nowMs = Date.now();
