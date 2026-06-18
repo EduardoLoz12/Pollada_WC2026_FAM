@@ -7,10 +7,10 @@ Family World Cup 2026 prediction app. Static frontend on Vercel + Supabase Postg
 - **Family code:** `LozadaVargas2026` (in `static/js/config.js`, validated client-side)
 - **WC kickoff:** `WC_START` in `static/js/config.js` = 2026-06-11T19:00:00Z (**UTC**, = 2pm Colombia; football-data times are UTC — never hardcode Colombia time)
 - **Prize:** S/ 500 for the winner (gold pulsing badge in header)
-- **Registrations CLOSED** (v1.0.6): join button replaced by badge; `nextStep`/`submitPredictions` reject names not already in `participants`. Existing members edit freely — each match locks individually at its kickoff (no global edit deadline).
+- **Registrations OPEN** (reopened v1.0.11-13, reversing the v1.0.6 closure): join button live again; `submitPredictions` inserts a new `participants` row on first save instead of rejecting unknown names. Existing members edit freely — each match locks individually at its kickoff (no global edit deadline).
 
 ## RULE: version bump on every push
-Every push must increment `<div class="footer-version">vX.Y.Z</div>` in index.html (v1.0.9 as of 2026-06-12). It's how Eduardo verifies which build is live.
+Every push must increment `<div class="footer-version">vX.Y.Z</div>` in index.html (v1.0.14 as of 2026-06-18). It's how Eduardo verifies which build is live.
 
 ## Stack
 - Frontend: plain HTML/CSS/JS — `index.html`, `static/js/app.js`, `static/css/style.css`, `static/js/config.js`
@@ -66,8 +66,8 @@ Anon key cannot run DDL (CREATE POLICY, ALTER TABLE) or UPDATE on `participants`
 - `renderLeaderboard()` / `calcPoints()` — points: 2 (correct result) + 3 (knockout bonus, non-group stage) + 10/5/5 (champion/runner-up/scorer special bets), see `POINTS` in config.js. Points only count when match status is FINISHED.
 - Tabs: Tabla, Partidos, Grupos, Goleadores, Mis Pronósticos. Deep-link with `/#tab=<name>` (e.g. `#tab=partidos`).
 - Partidos tab: each match card shows family vote split (H/D/A counts + colored bar) computed from `_predictions`.
-- "Mis Pronósticos" tab: type name → saved picks + remaining-predictions alert + "✏️ Editar Pronósticos" button (always visible; form only offers matches whose kickoff is in the future).
-- Join modal (3 steps) now only serves existing members (registrations closed). Avatar picker excludes medal emojis (🥇🥈🥉, reserved for leaderboard ranks) and refetches `_participants` on open to avoid duplicate-avatar races.
+- "Mis Pronósticos" tab: type name → saved picks (each row shows match date/time in Colombia tz via `toColDateShort`, added v1.0.14) + remaining-predictions alert + "✏️ Editar Pronósticos" button (always visible; form only offers matches whose kickoff is in the future).
+- Join modal (3 steps) serves both new and existing members (registrations reopened v1.0.11-13). `submitPredictions` creates the `participants` row on first save if `_existingParticipant` is unset. Avatar picker excludes medal emojis (🥇🥈🥉, reserved for leaderboard ranks) and refetches `_participants` on open to avoid duplicate-avatar races.
 - Mascot (`static/img/mascot.jpg`, Eduardo cartoon): bouncing circle top-right of header; click → welcome modal.
 
 ## Debug history (bugs already found & fixed — check here before re-diagnosing)
@@ -76,6 +76,8 @@ Anon key cannot run DDL (CREATE POLICY, ALTER TABLE) or UPDATE on `participants`
 - v1.0.5: standings never populated (group=None mapping).
 - v1.0.8: cron died on football-data ConnectionError (no retry).
 - v1.0.9: group_standings upsert silently no-op (missing on_conflict) → Grupos tab frozen.
+- v1.0.11-13: registrations reopened (join button restored, `submitPredictions` no longer rejects new names, inserts `participants` row on first save) — reverses the v1.0.6 closure noted above.
+- v1.0.14: added match date/time to each row in "Mis Pronósticos" so past vs future predictions are distinguishable.
 - RLS: predictions/special_bets needed UPDATE policies for edit-upsert ("Algo se rompió" case).
 - Duplicate avatars (Carlos/Cinthya both 👑): stale `_participants` race, fixed by refetch on modal open; data fixed via SQL Editor.
 
