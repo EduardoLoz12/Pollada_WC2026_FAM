@@ -1098,6 +1098,7 @@ input[type="number"]:focus {
 }
 .my-pred-row:last-child { border-bottom: none; }
 .my-pred-match { flex: 1; color: var(--text); }
+.my-pred-date  { font-size: .75rem; color: var(--muted); margin-top: 2px; }
 .my-pred-pick  { font-weight: 700; color: var(--gold2); text-align: right; }
 .my-pred-status { font-size: .9rem; min-width: 24px; text-align: right; }
 .my-pred-status.ok { color: var(--green); }

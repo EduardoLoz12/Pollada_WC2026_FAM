@@ -793,8 +793,12 @@ function loadMyPredictions() {
           ? `<span class="my-pred-status ok">✅</span>`
           : `<span class="my-pred-status no">❌</span>`;
       }
+      const dateLabel = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "Fecha TBD";
       return `<div class="my-pred-row">
-        <div class="my-pred-match">${esc(shortName(m.home_team))} vs ${esc(shortName(m.away_team))}</div>
+        <div class="my-pred-match">
+          ${esc(shortName(m.home_team))} vs ${esc(shortName(m.away_team))}
+          <div class="my-pred-date">${dateLabel}</div>
+        </div>
         <div class="my-pred-pick">${pickLabel}</div>
         ${statusHtml}
       </div>`;
