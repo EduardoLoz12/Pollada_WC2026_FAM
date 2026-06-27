@@ -177,6 +177,20 @@ header h1 {
   50%      { box-shadow: 0 0 18px rgba(245,166,35,.55); }
 }
 
+/* ─── Phase banner (dinámico) ─────────────────────────────────────────── */
+.phase-banner {
+  background: linear-gradient(135deg, rgba(245,166,35,.18), rgba(245,166,35,.05));
+  border-top: 1px solid var(--border);
+  border-bottom: 2px solid var(--gold);
+  color: var(--text);
+  font-size: .82rem;
+  line-height: 1.5;
+  padding: 10px 16px;
+  text-align: center;
+  animation: prize-pulse 2.4s ease-in-out infinite;
+}
+.phase-banner strong { color: var(--gold2); }
+
 /* ─── Tabs ────────────────────────────────────────────────────────────── */
 .tabs {
   display: flex;
