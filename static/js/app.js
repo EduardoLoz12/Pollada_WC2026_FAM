@@ -95,7 +95,7 @@ function updateJoinButtonText() {
   if (!btn) return;
   const announce = getAnnouncePhase();
   if (announce) {
-    btn.textContent = `Completar Pronósticos · ${STAGE_LABEL[announce] || announce}`;
+    btn.innerHTML = `Completar Pronósticos<br><span class="btn-join-sub">${STAGE_LABEL[announce] || announce}</span>`;
     btn.onclick = showQuickModal;
   } else {
     btn.textContent = "⚽ Unirme a la Polla";

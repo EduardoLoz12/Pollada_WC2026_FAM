@@ -159,6 +159,8 @@ header h1 {
 
 .btn-join:active { transform: scale(.97); }
 
+.btn-join-sub { display: inline-block; font-size: .78em; font-weight: 700; opacity: .85; margin-top: 2px; }
+
 .join-closed {
   display: inline-block;
   margin-top: 14px;
