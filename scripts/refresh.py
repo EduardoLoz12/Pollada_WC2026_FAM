@@ -144,7 +144,9 @@ def refresh_matches():
         raise RuntimeError("all fixture fetch attempts failed")
 
     # Never downgrade what's already in the DB (stale replica protection)
-    existing = {r["match_id"]: r for r in sb_get("wc_matches?select=match_id,status,home_score,home_team,away_team")}
+    existing = {r["match_id"]: r for r in sb_get(
+        "wc_matches?select=match_id,status,home_score,away_score,home_team,away_team"
+    )}
 
     now  = datetime.now(timezone.utc).isoformat()
     rows = []
@@ -162,6 +164,10 @@ def refresh_matches():
             continue  # stale replica tried to downgrade this match — skip
         if ex and st == ex.get("status") and hs is None and ex.get("home_score") is not None:
             continue  # same status but would wipe an existing score — skip
+        if (ex and ex.get("status") == "FINISHED" and ex.get("home_score") is not None
+                and (hs != ex.get("home_score") or as_ != ex.get("away_score"))):
+            continue  # match already finished — a later replica reporting a
+                       # different score is the bug, not a correction; result is locked
 
         home_team = (m.get("homeTeam") or {}).get("name") or "TBD"
         away_team = (m.get("awayTeam") or {}).get("name") or "TBD"
