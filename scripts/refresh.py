@@ -144,7 +144,7 @@ def refresh_matches():
         raise RuntimeError("all fixture fetch attempts failed")
 
     # Never downgrade what's already in the DB (stale replica protection)
-    existing = {r["match_id"]: r for r in sb_get("wc_matches?select=match_id,status,home_score")}
+    existing = {r["match_id"]: r for r in sb_get("wc_matches?select=match_id,status,home_score,home_team,away_team")}
 
     now  = datetime.now(timezone.utc).isoformat()
     rows = []
@@ -162,10 +162,22 @@ def refresh_matches():
             continue  # stale replica tried to downgrade this match — skip
         if ex and st == ex.get("status") and hs is None and ex.get("home_score") is not None:
             continue  # same status but would wipe an existing score — skip
+
+        home_team = (m.get("homeTeam") or {}).get("name") or "TBD"
+        away_team = (m.get("awayTeam") or {}).get("name") or "TBD"
+        # A lagged replica can report a knockout slot as still-TBD after a
+        # fresher poll already resolved it — never regress a known team
+        # name back to TBD (mirrors the status/score guards above).
+        if ex:
+            if home_team == "TBD" and ex.get("home_team") and ex["home_team"] != "TBD":
+                home_team = ex["home_team"]
+            if away_team == "TBD" and ex.get("away_team") and ex["away_team"] != "TBD":
+                away_team = ex["away_team"]
+
         rows.append({
             "match_id":    str(m["id"]),
-            "home_team":   (m.get("homeTeam") or {}).get("name") or "TBD",
-            "away_team":   (m.get("awayTeam") or {}).get("name") or "TBD",
+            "home_team":   home_team,
+            "away_team":   away_team,
             "home_score":  hs,
             "away_score":  as_,
             "winner":      score.get("winner"),

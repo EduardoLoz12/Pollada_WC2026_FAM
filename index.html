@@ -13,14 +13,17 @@
 </head>
 <body>
 
+<!-- ══════════════════ PHASE TICKER (dinámico, ver renderPhaseBanner en app.js) ══════════════════ -->
+<div id="phase-banner" class="phase-ticker hidden"></div>
+
 <!-- ══════════════════ HEADER ══════════════════ -->
 <header>
-  <img src="static/img/mascot.jpg" alt="Mascota Familia Lozada Vargas" class="header-mascot" onclick="showMascotModal()">
+  <img src="static/img/patriarca.png" alt="El Patriarca, Familia Lozada Vargas" class="header-mascot" onclick="showMascotModal()">
   <span class="header-trophy">🏆</span>
   <h1>Polla Mundialera 2026</h1>
   <p class="header-family">Familia Lozada Vargas</p>
   <div id="countdown"></div>
-  <button class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
+  <button id="btn-join" class="btn-join" onclick="showJoinModal()">⚽ Unirme a la Polla</button>
   <p class="join-closed">🏆 ¡Premio: S/ 500 para el ganador! 💰 ¡Únete ahora y pronostica!</p>
 </header>
 
@@ -115,7 +118,7 @@
     <div class="modal-handle"></div>
 
     <!-- Step indicators -->
-    <div class="step-indicator">
+    <div class="step-indicator" id="step-indicator">
       <div class="step-dot active"></div>
       <div class="step-dot"></div>
       <div class="step-dot"></div>
@@ -141,7 +144,7 @@
 
     <!-- ─── Step 2: Predictions ──────────────── -->
     <div id="step-2" style="display:none">
-      <h2>📋 Mis Pronósticos <span id="phase-badge" class="phase-badge-inline"></span></h2>
+      <h2 id="step2-heading">📋 Mis Pronósticos</h2>
       <p class="hint">Selecciona el ganador de cada partido. No tienes que terminar todo ahora: guarda lo que llenes y vuelve cuando quieras para completar o cambiar tus pronósticos. Cada partido se bloquea cuando empieza.</p>
 
       <button id="btn-submit-top" class="btn-primary btn-save-action" onclick="submitPredictions()">
@@ -173,14 +176,14 @@
       <button id="btn-submit" class="btn-primary btn-save-action" onclick="submitPredictions()">
         ✅ Guardar mis pronósticos
       </button>
-      <button class="btn-secondary" onclick="showStep(1)">← Atrás</button>
+      <button class="btn-secondary" onclick="backFromStep2()">← Atrás</button>
     </div>
 
     <!-- ─── Step 3: Success ──────────────────── -->
     <div id="step-3" style="display:none">
       <div class="success-box">
         <span class="big-emoji">🎉</span>
-        <h3>¡Ya estás en la polla!</h3>
+        <h3 id="step3-heading">¡Ya estás en la polla!</h3>
         <p id="success-msg"></p>
       </div>
       <button class="btn-primary" onclick="hideJoinModal(); showTab('tabla')">
@@ -190,13 +193,30 @@
   </div>
 </div>
 
+<!-- ══════════════════ QUICK PREDICT MODAL (solo nombre, para fases en curso) ══════════════════ -->
+<div id="quick-modal" class="modal-backdrop hidden" onclick="if(event.target.id==='quick-modal') hideQuickModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 id="quick-heading">⚡ Completar Pronósticos</h2>
+    <p class="hint">Pon tu nombre para seguir editando tus pronósticos.</p>
+
+    <label>Tu nombre</label>
+    <input id="quick-input-name" type="text" placeholder="¿Cómo te llaman?" maxlength="30" autocomplete="off" onkeyup="if(event.key==='Enter') quickContinue()">
+
+    <div class="error-msg" id="quick-error-msg"></div>
+
+    <button class="btn-primary" onclick="quickContinue()">Continuar →</button>
+  </div>
+</div>
+
 <!-- ══════════════════ MASCOT MODAL ══════════════════ -->
 <div id="mascot-modal" class="modal-backdrop hidden" onclick="if(event.target.id==='mascot-modal') hideMascotModal()">
   <div class="mascot-sheet">
     <button class="modal-close" onclick="hideMascotModal()">✕</button>
-    <img src="static/img/mascot.jpg" alt="Mascota Familia Lozada Vargas" class="mascot-big">
-    <h2>Mensaje del primer puesto 🥇</h2>
-    <p>¡Ánimo amigos! Todavía pueden pelear el segundo puesto 🥈. Estar sola en la cima da mucho frío 🥶. ¡Mucha suerte a todos! 🍀</p>
+    <img src="static/img/patriarca.png" alt="El Patriarca, Familia Lozada Vargas" class="mascot-big">
+    <h2>Mensaje del Patriarca</h2>
+    <p>Familia querida, el Mundial apenas comienza. Todavía hay tiempo de sobra para remontar en las eliminatorias, así que no se desanimen.</p>
+    <p>Eso sí, las corazonadas del H son solo para mis favoritos... ya saben quiénes son 😏❤️</p>
     <button class="btn-primary" onclick="hideMascotModal()">¡Vamos! 🔥</button>
   </div>
 </div>
@@ -204,7 +224,7 @@
 <!-- ══════════════════ FOOTER ══════════════════ -->
 <footer class="site-footer">
   Created by: <a href="https://elozconsulting.com/" target="_blank" rel="noopener">Eloz Consulting</a>
-  <div class="footer-version">v1.0.22</div>
+  <div class="footer-version">v1.0.23</div>
 </footer>
 
 <!-- Scripts -->

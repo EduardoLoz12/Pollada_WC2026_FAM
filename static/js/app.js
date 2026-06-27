@@ -10,14 +10,97 @@ let _selectedAvatar = AVATARS[0];
 let _matchPreds = {};
 let _currentStep = 1;
 let _existingParticipant = null;  // set when returning participant re-submits
+let _quickMode = false;  // true when step-2 was reached via the quick-predict modal (no avatar step)
 
 const PHASE_ORDER = ["GROUP_STAGE","ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+const ANNOUNCE_WINDOW_HOURS = 96; // heads-up window before the next phase kicks off
 
 function getActivePhase() {
   for (const stage of PHASE_ORDER) {
     if (_matches.some(m => m.stage === stage && m.status !== "FINISHED")) return stage;
   }
   return null;
+}
+
+// The phase to headline in the banner/join button: the active phase once it's
+// a knockout round, or the upcoming knockout phase if it starts soon (lets
+// the family start filling it in before the last group games are done).
+function getAnnouncePhase() {
+  const active = getActivePhase();
+  if (!active) return null;
+  if (active !== "GROUP_STAGE") return active;
+
+  const idx  = PHASE_ORDER.indexOf(active);
+  const next = PHASE_ORDER.slice(idx + 1).find(s => _matches.some(m => m.stage === s));
+  if (!next) return null;
+
+  const nextMatches = _matches.filter(m => m.stage === next && m.kickoff_utc);
+  if (!nextMatches.length) return null;
+
+  const earliest = nextMatches.reduce((a, b) =>
+    new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b
+  );
+  const diffH = (new Date(earliest.kickoff_utc) - Date.now()) / 3600000;
+  return diffH <= ANNOUNCE_WINDOW_HOURS ? next : null;
+}
+
+// Phases whose matches should be open for predictions right now.
+function getEditablePhases() {
+  const active = getActivePhase();
+  if (!active) return [];
+  const announce = getAnnouncePhase();
+  return announce && announce !== active ? [active, announce] : [active];
+}
+
+function relativeDayLabel(utcStr) {
+  const fmt = d => d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+  const target   = fmt(new Date(utcStr));
+  const today    = fmt(new Date());
+  const tomorrow = fmt(new Date(Date.now() + 86400000));
+  if (target === today)    return "hoy";
+  if (target === tomorrow) return "mañana";
+  return `el ${toColDate(utcStr)}`;
+}
+
+// Scrolling ticker — like a server status line — only shown while a phase
+// transition is imminent or just happened (see getAnnouncePhase above).
+function renderPhaseBanner() {
+  const el = document.getElementById("phase-banner");
+  if (!el) return;
+
+  const active   = getActivePhase();
+  const announce = getAnnouncePhase();
+  document.body.classList.toggle("has-ticker", !!announce);
+  if (!announce) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+
+  const label = STAGE_LABEL[announce] || announce;
+  let headline;
+  if (announce === active) {
+    headline = `¡Ya arrancó ${label}! Completa tus pronósticos.`;
+  } else {
+    const nextMatches = _matches.filter(m => m.stage === announce && m.kickoff_utc);
+    const earliest = nextMatches.reduce((a, b) =>
+      new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b
+    );
+    headline = `La Fase de Grupos está terminando — ${relativeDayLabel(earliest.kickoff_utc)} arranca ${label}. Ya puedes ir llenando tus pronósticos.`;
+  }
+
+  el.classList.remove("hidden");
+  el.innerHTML = `<div class="phase-ticker-track">📢 ${headline}</div>`;
+  applyTwemoji("phase-banner");
+}
+
+function updateJoinButtonText() {
+  const btn = document.getElementById("btn-join");
+  if (!btn) return;
+  const announce = getAnnouncePhase();
+  if (announce) {
+    btn.textContent = `Completar Pronósticos · ${STAGE_LABEL[announce] || announce}`;
+    btn.onclick = showQuickModal;
+  } else {
+    btn.textContent = "⚽ Unirme a la Polla";
+    btn.onclick = showJoinModal;
+  }
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────
@@ -58,6 +141,8 @@ async function loadAllData() {
   renderGroups();
   renderScorers();
   populateTeamsList();
+  renderPhaseBanner();
+  updateJoinButtonText();
 }
 
 // ─── Countdown ────────────────────────────────────────────────────────────
@@ -408,6 +493,8 @@ async function showJoinModal() {
   _matchPreds          = {};
   _currentStep         = 1;
   _existingParticipant = null;
+  _quickMode            = false;
+  document.getElementById("step-indicator").style.display = "";
   document.getElementById("join-modal").classList.remove("hidden");
   document.getElementById("input-name").value = "";
   document.getElementById("error-msg").style.display = "none";
@@ -422,6 +509,73 @@ async function showJoinModal() {
 
 function hideJoinModal() {
   document.getElementById("join-modal").classList.add("hidden");
+}
+
+// ─── Quick-predict modal — lighter alternative to the join modal for
+// participants who already exist: just their name, then straight to picking
+// predictions for the currently editable phase(s). No avatar step.
+function showQuickModal() {
+  const announce = getAnnouncePhase();
+  document.getElementById("quick-heading").textContent =
+    announce ? `⚡ Completar Pronósticos · ${STAGE_LABEL[announce] || announce}` : "⚡ Completar Pronósticos";
+  document.getElementById("quick-input-name").value = "";
+  document.getElementById("quick-error-msg").style.display = "none";
+  document.getElementById("quick-modal").classList.remove("hidden");
+}
+
+function hideQuickModal() {
+  document.getElementById("quick-modal").classList.add("hidden");
+}
+
+function showQuickError(msg) {
+  const el = document.getElementById("quick-error-msg");
+  if (el) { el.textContent = msg; el.style.display = "block"; }
+}
+
+// Shared by the quick modal and "✏️ Editar Pronósticos" in Mis Pronósticos:
+// looks up an existing participant by name and jumps straight to step 2.
+function openPredictionsFor(name, onNotFound) {
+  const participant = _participants.find(
+    p => p.name.trim().toLowerCase() === name.trim().toLowerCase()
+  );
+  if (!participant) { if (onNotFound) onNotFound(); return false; }
+
+  _quickMode            = false;
+  document.getElementById("step-indicator").style.display = "";
+  _existingParticipant = participant;
+  _selectedAvatar      = participant.avatar;
+  _matchPreds          = {};
+
+  document.getElementById("input-name").value = participant.name;
+  const bet = _specialBets.find(s => s.participant_id === participant.id);
+  document.getElementById("special-champion").value = bet?.champion  || "";
+  document.getElementById("special-runner").value   = bet?.runner_up || "";
+  document.getElementById("special-scorer").value   = bet?.top_scorer|| "";
+
+  document.getElementById("join-modal").classList.remove("hidden");
+  buildPredictionsForm();
+  updateStep2Heading();
+  showStep(2);
+  return true;
+}
+
+function quickContinue() {
+  const name = document.getElementById("quick-input-name").value.trim();
+  if (!name) { showQuickError("Escribe tu nombre"); return; }
+
+  const ok = openPredictionsFor(name, () =>
+    showQuickError('No te encontramos. Si es tu primera vez, usa "Unirme a la Polla" desde la tabla.')
+  );
+  if (ok) {
+    _quickMode = true;
+    document.getElementById("step-indicator").style.display = "none";
+    hideQuickModal();
+  }
+}
+
+function backFromStep2() {
+  if (_quickMode) { hideJoinModal(); showQuickModal(); }
+  else { showStep(1); }
 }
 
 // ─── Mascot modal ───────────────────────────────────────────────────────────
@@ -492,26 +646,27 @@ function nextStep() {
 
   errEl.style.display = "none";
   buildPredictionsForm();  // rebuild for current phase / existing preds
-  updatePhaseBadge();
+  updateStep2Heading();
   showStep(2);
 }
 
-function updatePhaseBadge() {
-  const el = document.getElementById("phase-badge");
+function updateStep2Heading() {
+  const el = document.getElementById("step2-heading");
   if (!el) return;
-  const phase = getActivePhase();
-  el.textContent = phase ? (STAGE_LABEL[phase] || phase) : "";
+  const announce = getAnnouncePhase();
+  el.textContent = announce ? `⚡ Seguir completando ${STAGE_LABEL[announce] || announce}` : "📋 Mis Pronósticos";
 }
 
-// Build predictions form — current active phase.
-// Every not-yet-started match is editable at any time; a match locks
-// individually the moment it kicks off.
+// Build predictions form — current active phase, plus the upcoming knockout
+// phase once it's close (so the family can fill those in before the last
+// group games finish). Every not-yet-started match is editable at any time;
+// a match locks individually the moment it kicks off.
 function buildPredictionsForm() {
   const el = document.getElementById("predictions-form");
   if (!el) return;
 
-  const phase = getActivePhase();
-  if (!phase) {
+  const phases = getEditablePhases();
+  if (!phases.length) {
     el.innerHTML = `<p class="hint">El torneo ha terminado. Gracias por participar!</p>`;
     return;
   }
@@ -522,11 +677,13 @@ function buildPredictionsForm() {
   const predMap = {};
   myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
 
-  // Editing is always open — only matches already kicked off are locked out
+  // Editing is always open — only matches already kicked off are locked out,
+  // and matchups still waiting on a TBD team can't be predicted yet.
   const now = Date.now();
   const matches = _matches.filter(m =>
-    m.stage === phase &&
+    phases.includes(m.stage) &&
     m.status !== "FINISHED" &&
+    m.home_team !== "TBD" && m.away_team !== "TBD" &&
     (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > now)
   );
 
@@ -538,10 +695,10 @@ function buildPredictionsForm() {
   }
 
   if (!matches.length) {
-    const phaseLabel = STAGE_LABEL[phase] || phase;
+    const phaseLabel = phases.map(p => STAGE_LABEL[p] || p).join(" y ");
     el.innerHTML = `<div class="hint-done">
-      <span>✔</span> Ya tienes todos tus pronósticos para <strong>${phaseLabel}</strong>.<br>
-      Vuelve cuando empiece la siguiente fase.
+      <span>✔</span> Ya tienes todos tus pronósticos disponibles para <strong>${phaseLabel}</strong>.<br>
+      Vuelve cuando se definan más cruces o empiece la siguiente fase.
     </div>`;
     return;
   }
@@ -686,9 +843,11 @@ async function submitPredictions() {
     }
 
     // Success
+    document.getElementById("step3-heading").textContent =
+      _quickMode || _existingParticipant ? "¡Pronósticos guardados!" : "¡Ya estás en la polla!";
     showStep(3);
-    const phase = getActivePhase();
-    const phaseLabel = phase ? (STAGE_LABEL[phase] || phase) : "";
+    const phases = getEditablePhases();
+    const phaseLabel = phases.map(p => STAGE_LABEL[p] || p).join(" y ");
     const coveredIds = new Set([
       ...(_existingParticipant
         ? _predictions.filter(p => p.participant_id === _existingParticipant.id).map(p => p.match_id)
@@ -696,7 +855,9 @@ async function submitPredictions() {
       ...predRows.map(r => r.match_id),
     ]);
     const remaining = _matches.filter(m =>
-      m.stage === phase && m.status !== "FINISHED" && !coveredIds.has(m.match_id)
+      phases.includes(m.stage) && m.status !== "FINISHED" &&
+      m.home_team !== "TBD" && m.away_team !== "TBD" &&
+      !coveredIds.has(m.match_id)
     ).length;
     let msg;
     if (predRows.length === 0) {
@@ -754,14 +915,16 @@ function loadMyPredictions() {
     <p class="hint">${myPreds.length} pronósticos guardados · ${countCorrect(participant.id)} aciertos</p>
   </div>`;
 
-  // Alert: how many matches are missing for the active phase
-  const activePhase = getActivePhase();
-  if (activePhase) {
+  // Alert: how many matches are missing across the currently editable phases
+  const editablePhases = getEditablePhases();
+  if (editablePhases.length) {
     const predictedIds = new Set(myPreds.map(p => p.match_id));
     const remaining = _matches.filter(m =>
-      m.stage === activePhase && m.status !== "FINISHED" && !predictedIds.has(m.match_id)
+      editablePhases.includes(m.stage) && m.status !== "FINISHED" &&
+      m.home_team !== "TBD" && m.away_team !== "TBD" &&
+      !predictedIds.has(m.match_id)
     ).length;
-    const phaseLabel = STAGE_LABEL[activePhase] || activePhase;
+    const phaseLabel = editablePhases.map(p => STAGE_LABEL[p] || p).join(" y ");
     if (remaining > 0) {
       html += `<div class="preds-alert warn">⚠️ Te faltan <strong>${remaining}</strong> pronóstico${remaining === 1 ? "" : "s"} de ${phaseLabel} por completar.</div>`;
     } else {
@@ -821,26 +984,8 @@ function loadMyPredictions() {
 // Jump straight into step 2 of the join modal to edit/complete predictions
 function editMyPredictions() {
   const name = (document.getElementById("my-preds-name-input").value || "").trim();
-  const participant = _participants.find(
-    p => p.name.trim().toLowerCase() === name.toLowerCase()
-  );
-  if (!participant) return;
-
-  _existingParticipant = participant;
-  _selectedAvatar      = participant.avatar;
-  _matchPreds          = {};
-
-  document.getElementById("input-name").value = participant.name;
-
-  const bet = _specialBets.find(s => s.participant_id === participant.id);
-  document.getElementById("special-champion").value = bet?.champion  || "";
-  document.getElementById("special-runner").value   = bet?.runner_up || "";
-  document.getElementById("special-scorer").value   = bet?.top_scorer|| "";
-
-  document.getElementById("join-modal").classList.remove("hidden");
-  buildPredictionsForm();
-  updatePhaseBadge();
-  showStep(2);
+  if (!name) return;
+  openPredictionsFor(name);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

@@ -80,10 +80,10 @@ header {
 
 .mascot-big {
   display: block;
-  width: 210px;
-  height: 146px;
+  width: 220px;
+  height: 275px;
   object-fit: cover;
-  object-position: top center;
+  object-position: center 10%;
   border-radius: 16px;
   border: 3px solid var(--gold);
   box-shadow: 0 4px 20px rgba(0,0,0,.4);
@@ -161,6 +161,7 @@ header h1 {
 
 .join-closed {
   display: inline-block;
+  margin-top: 14px;
   background: linear-gradient(135deg, rgba(245,166,35,.18), rgba(245,166,35,.05));
   border: 1.5px solid var(--gold);
   border-radius: 24px;
@@ -176,6 +177,44 @@ header h1 {
   0%, 100% { box-shadow: 0 0 6px rgba(245,166,35,.25); }
   50%      { box-shadow: 0 0 18px rgba(245,166,35,.55); }
 }
+
+/* ─── Phase ticker (dinámico) ──────────────────────────────────────────── */
+/* Hidden by default — only takes up space while a phase transition is
+   imminent/active, so it doesn't push header/tabs down the rest of the time. */
+.phase-ticker {
+  position: sticky;
+  top: 0;
+  z-index: 101;
+  height: 28px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #3a2308, #1a3a1f);
+  border-bottom: 1px solid var(--gold);
+}
+.phase-ticker.hidden { display: none; }
+
+.phase-ticker-track {
+  position: absolute;
+  top: 0; left: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  padding-right: 60px;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold2);
+  animation: ticker-scroll 40s linear infinite;
+}
+.phase-ticker-track img.emoji { height: 1em; width: 1em; vertical-align: -0.15em; margin: 0 2px; }
+
+@keyframes ticker-scroll {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100vw); }
+}
+
+/* When the ticker is showing, push header and tabs down by its height */
+body.has-ticker header { top: 28px; }
+body.has-ticker .tabs  { top: 188px; }
 
 /* ─── Tabs ────────────────────────────────────────────────────────────── */
 .tabs {
