@@ -12,89 +12,12 @@ let _currentStep = 1;
 let _existingParticipant = null;  // set when returning participant re-submits
 
 const PHASE_ORDER = ["GROUP_STAGE","ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
-const ANNOUNCE_WINDOW_HOURS = 96; // heads-up window before the next phase kicks off
 
 function getActivePhase() {
   for (const stage of PHASE_ORDER) {
     if (_matches.some(m => m.stage === stage && m.status !== "FINISHED")) return stage;
   }
   return null;
-}
-
-// The phase to headline in the banner/join button: the active phase once it's
-// a knockout round, or the upcoming knockout phase if it starts soon (lets
-// the family start filling it in before the last group games are done).
-function getAnnouncePhase() {
-  const active = getActivePhase();
-  if (!active) return null;
-  if (active !== "GROUP_STAGE") return active;
-
-  const idx  = PHASE_ORDER.indexOf(active);
-  const next = PHASE_ORDER.slice(idx + 1).find(s => _matches.some(m => m.stage === s));
-  if (!next) return null;
-
-  const nextMatches = _matches.filter(m => m.stage === next && m.kickoff_utc);
-  if (!nextMatches.length) return null;
-
-  const earliest = nextMatches.reduce((a, b) =>
-    new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b
-  );
-  const diffH = (new Date(earliest.kickoff_utc) - Date.now()) / 3600000;
-  return diffH <= ANNOUNCE_WINDOW_HOURS ? next : null;
-}
-
-// Phases whose matches should be open for predictions right now.
-function getEditablePhases() {
-  const active = getActivePhase();
-  if (!active) return [];
-  const announce = getAnnouncePhase();
-  return announce && announce !== active ? [active, announce] : [active];
-}
-
-function relativeDayLabel(utcStr) {
-  const fmt = d => d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
-  const target   = fmt(new Date(utcStr));
-  const today    = fmt(new Date());
-  const tomorrow = fmt(new Date(Date.now() + 86400000));
-  if (target === today)    return "hoy";
-  if (target === tomorrow) return "mañana";
-  return `el ${toColDate(utcStr)}`;
-}
-
-function renderPhaseBanner() {
-  const el = document.getElementById("phase-banner");
-  if (!el) return;
-
-  const active   = getActivePhase();
-  const announce = getAnnouncePhase();
-  if (!announce) { el.innerHTML = ""; return; }
-
-  const label = STAGE_LABEL[announce] || announce;
-  let headline;
-  if (announce === active) {
-    headline = `¡Ya arrancó <strong>${label}</strong>!`;
-  } else {
-    const nextMatches = _matches.filter(m => m.stage === announce && m.kickoff_utc);
-    const earliest = nextMatches.reduce((a, b) =>
-      new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b
-    );
-    headline = `¡La Fase de Grupos está terminando! ${relativeDayLabel(earliest.kickoff_utc)} arranca <strong>${label}</strong>.`;
-  }
-
-  el.innerHTML = `<div class="phase-banner">
-    🔥 ${headline} Ya puedes ir llenando tus pronósticos.
-    Desde esta fase, <strong>cada marcador acertado vale +${POINTS.knockout_bonus} pts extra</strong> (bono eliminación).
-  </div>`;
-  applyTwemoji("phase-banner");
-}
-
-function updateJoinButtonText() {
-  const btn = document.getElementById("btn-join");
-  if (!btn) return;
-  const announce = getAnnouncePhase();
-  btn.textContent = announce
-    ? `✅ Completar Pronósticos · ${STAGE_LABEL[announce] || announce}`
-    : "⚽ Unirme a la Polla";
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────
@@ -135,8 +58,6 @@ async function loadAllData() {
   renderGroups();
   renderScorers();
   populateTeamsList();
-  renderPhaseBanner();
-  updateJoinButtonText();
 }
 
 // ─── Countdown ────────────────────────────────────────────────────────────
@@ -578,20 +499,19 @@ function nextStep() {
 function updatePhaseBadge() {
   const el = document.getElementById("phase-badge");
   if (!el) return;
-  const phase = getAnnouncePhase() || getActivePhase();
+  const phase = getActivePhase();
   el.textContent = phase ? (STAGE_LABEL[phase] || phase) : "";
 }
 
-// Build predictions form — current active phase, plus the upcoming knockout
-// phase once it's close (so the family can fill those in before the last
-// group games finish). Every not-yet-started match is editable at any time;
-// a match locks individually the moment it kicks off.
+// Build predictions form — current active phase.
+// Every not-yet-started match is editable at any time; a match locks
+// individually the moment it kicks off.
 function buildPredictionsForm() {
   const el = document.getElementById("predictions-form");
   if (!el) return;
 
-  const phases = getEditablePhases();
-  if (!phases.length) {
+  const phase = getActivePhase();
+  if (!phase) {
     el.innerHTML = `<p class="hint">El torneo ha terminado. Gracias por participar!</p>`;
     return;
   }
@@ -602,13 +522,11 @@ function buildPredictionsForm() {
   const predMap = {};
   myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
 
-  // Editing is always open — only matches already kicked off are locked out,
-  // and matchups still waiting on a TBD team can't be predicted yet.
+  // Editing is always open — only matches already kicked off are locked out
   const now = Date.now();
   const matches = _matches.filter(m =>
-    phases.includes(m.stage) &&
+    m.stage === phase &&
     m.status !== "FINISHED" &&
-    m.home_team !== "TBD" && m.away_team !== "TBD" &&
     (!m.kickoff_utc || new Date(m.kickoff_utc).getTime() > now)
   );
 
@@ -620,10 +538,10 @@ function buildPredictionsForm() {
   }
 
   if (!matches.length) {
-    const phaseLabel = phases.map(p => STAGE_LABEL[p] || p).join(" y ");
+    const phaseLabel = STAGE_LABEL[phase] || phase;
     el.innerHTML = `<div class="hint-done">
-      <span>✔</span> Ya tienes todos tus pronósticos disponibles para <strong>${phaseLabel}</strong>.<br>
-      Vuelve cuando se definan más cruces o empiece la siguiente fase.
+      <span>✔</span> Ya tienes todos tus pronósticos para <strong>${phaseLabel}</strong>.<br>
+      Vuelve cuando empiece la siguiente fase.
     </div>`;
     return;
   }
@@ -769,8 +687,8 @@ async function submitPredictions() {
 
     // Success
     showStep(3);
-    const phases = getEditablePhases();
-    const phaseLabel = phases.map(p => STAGE_LABEL[p] || p).join(" y ");
+    const phase = getActivePhase();
+    const phaseLabel = phase ? (STAGE_LABEL[phase] || phase) : "";
     const coveredIds = new Set([
       ...(_existingParticipant
         ? _predictions.filter(p => p.participant_id === _existingParticipant.id).map(p => p.match_id)
@@ -778,9 +696,7 @@ async function submitPredictions() {
       ...predRows.map(r => r.match_id),
     ]);
     const remaining = _matches.filter(m =>
-      phases.includes(m.stage) && m.status !== "FINISHED" &&
-      m.home_team !== "TBD" && m.away_team !== "TBD" &&
-      !coveredIds.has(m.match_id)
+      m.stage === phase && m.status !== "FINISHED" && !coveredIds.has(m.match_id)
     ).length;
     let msg;
     if (predRows.length === 0) {
@@ -838,16 +754,14 @@ function loadMyPredictions() {
     <p class="hint">${myPreds.length} pronósticos guardados · ${countCorrect(participant.id)} aciertos</p>
   </div>`;
 
-  // Alert: how many matches are missing across the currently editable phases
-  const editablePhases = getEditablePhases();
-  if (editablePhases.length) {
+  // Alert: how many matches are missing for the active phase
+  const activePhase = getActivePhase();
+  if (activePhase) {
     const predictedIds = new Set(myPreds.map(p => p.match_id));
     const remaining = _matches.filter(m =>
-      editablePhases.includes(m.stage) && m.status !== "FINISHED" &&
-      m.home_team !== "TBD" && m.away_team !== "TBD" &&
-      !predictedIds.has(m.match_id)
+      m.stage === activePhase && m.status !== "FINISHED" && !predictedIds.has(m.match_id)
     ).length;
-    const phaseLabel = editablePhases.map(p => STAGE_LABEL[p] || p).join(" y ");
+    const phaseLabel = STAGE_LABEL[activePhase] || activePhase;
     if (remaining > 0) {
       html += `<div class="preds-alert warn">⚠️ Te faltan <strong>${remaining}</strong> pronóstico${remaining === 1 ? "" : "s"} de ${phaseLabel} por completar.</div>`;
     } else {
