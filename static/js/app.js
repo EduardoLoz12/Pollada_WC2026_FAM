@@ -94,6 +94,7 @@ function updateJoinButtonText() {
   const btn = document.getElementById("btn-join");
   if (!btn) return;
   const announce = getAnnouncePhase();
+  btn.classList.toggle("btn-join-knockout", !!announce);
   if (announce) {
     btn.innerHTML = `Completar Pronósticos<br><span class="btn-join-sub">${STAGE_LABEL[announce] || announce}</span>`;
     btn.onclick = showQuickModal;

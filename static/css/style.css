@@ -161,6 +161,11 @@ header h1 {
 
 .btn-join-sub { display: inline-block; font-size: .78em; font-weight: 700; opacity: .85; margin-top: 2px; }
 
+.btn-join.btn-join-knockout {
+  background: linear-gradient(135deg, var(--green), #1e9c54);
+  box-shadow: 0 4px 16px rgba(46,204,113,.35);
+}
+
 .join-closed {
   display: inline-block;
   margin-top: 14px;
