@@ -796,27 +796,63 @@ input[type="number"]:focus {
 .pred-btn.selected-D,
 .pred-btn.selected-A { border-color: var(--green); background: rgba(46,204,113,.2); color: var(--green); }
 
+.score-box {
+  margin-top: 10px;
+  background: linear-gradient(135deg, rgba(245,166,35,.16), rgba(245,166,35,.04));
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.score-box-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.score-box-emoji { font-size: 1.9rem; line-height: 1; }
+.score-box-emoji img.emoji { height: 1em; width: 1em; vertical-align: middle; }
+
+.score-box-title {
+  font-weight: 800;
+  font-size: .92rem;
+  color: var(--gold2);
+}
+
+.score-box-sub {
+  font-size: .74rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.score-box-sub strong { color: var(--gold2); }
+
 .score-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .score-inputs input {
-  width: 50px;
+  width: 56px;
   text-align: center;
-  padding: 6px;
-  font-size: .9rem;
+  padding: 8px 4px;
+  font-size: 1.1rem;
+  font-weight: 800;
 }
 
-.score-inputs span { color: var(--muted); font-size: .9rem; }
-
-.score-label {
-  font-size: .72rem;
-  color: var(--muted);
-  margin-bottom: 3px;
+/* Hide the up/down spinner — these are score guesses, not steppers */
+.score-inputs input::-webkit-outer-spin-button,
+.score-inputs input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
+.score-inputs input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.score-inputs span { color: var(--muted); font-size: 1.1rem; font-weight: 700; }
 
 /* Buttons */
 .btn-primary {

@@ -25,7 +25,7 @@ SB_URL  = os.environ["SUPABASE_URL"]
 SB_KEY  = os.environ["SUPABASE_SERVICE_KEY"]
 SB_HDR  = {"apikey": SB_KEY, "Authorization": f"Bearer {SB_KEY}"}
 
-POINTS  = {"correct_result": 2, "exact_score_bonus": 3, "knockout_bonus": 3,
+POINTS  = {"correct_result_group": 2, "correct_result": 3, "exact_score_bonus": 2,
            "champion": 10, "runner_up": 5, "top_scorer": 5}
 
 OUT_PATH = Path(__file__).parent.parent / "excel" / "polla_mundialera.xlsx"
@@ -76,14 +76,12 @@ def calc_points(preds, matches):
         winner = m.get("winner")
         actual = "H" if winner == "HOME_TEAM" else ("A" if winner == "AWAY_TEAM" else "D")
         if p.get("pred_result") == actual:
-            total += POINTS["correct_result"]
+            total += POINTS["correct_result_group"] if m.get("stage") == "GROUP_STAGE" else POINTS["correct_result"]
             correct += 1
             if p.get("pred_home_score") == m["home_score"] and \
                p.get("pred_away_score") == m["away_score"]:
                 total += POINTS["exact_score_bonus"]
                 exact += 1
-            if m.get("stage") != "GROUP_STAGE":
-                total += POINTS["knockout_bonus"]
     return total, correct, exact
 
 

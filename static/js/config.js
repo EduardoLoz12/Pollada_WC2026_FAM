@@ -7,12 +7,12 @@ window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 window.FAMILY_CODE = "LozadaVargas2026";          // ← same as FAMILY_CODE env var in Vercel
 
 window.POINTS = {
-  correct_result:    2,
-  exact_score_bonus: 3,
-  knockout_bonus:    3,
-  champion:         10,
-  runner_up:         5,
-  top_scorer:        5,
+  correct_result_group: 2,  // locked historical value — Fase de Grupos ya jugada, no recalcular
+  correct_result:        3, // eliminatorias en adelante
+  exact_score_bonus:     2,
+  champion:             10,
+  runner_up:             5,
+  top_scorer:            5,
 };
 
 // ─── First WC match: 2026-06-11 19:00 UTC = 2:00 PM Colombia (per football-data.org)

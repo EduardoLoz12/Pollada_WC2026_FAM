@@ -251,13 +251,10 @@ function calcPoints(participantId) {
                  : m.winner === "AWAY_TEAM" ? "A" : "D";
 
     if (pred.pred_result === actual) {
-      total += POINTS.correct_result;
+      total += m.stage === "GROUP_STAGE" ? POINTS.correct_result_group : POINTS.correct_result;
       if (pred.pred_home_score === m.home_score &&
           pred.pred_away_score === m.away_score) {
         total += POINTS.exact_score_bonus;
-      }
-      if (m.stage !== "GROUP_STAGE") {
-        total += POINTS.knockout_bonus;
       }
     }
   }
@@ -278,8 +275,16 @@ function countCorrect(participantId) {
 
 // ─── Matches ──────────────────────────────────────────────────────────────
 let _activePhase = "ALL";
+let _phaseFilterInitialized = false;
 
 function renderMatches() {
+  // First load: jump straight to the current/upcoming knockout phase instead
+  // of "Todos" — that's what's relevant once group stage is done.
+  if (!_phaseFilterInitialized && _matches.length) {
+    const priority = getAnnouncePhase() || getActivePhase();
+    if (priority) _activePhase = priority;
+    _phaseFilterInitialized = true;
+  }
   buildPhasePills();
   renderMatchList();
 }
@@ -288,7 +293,13 @@ function buildPhasePills() {
   const el = document.getElementById("phase-filter");
   if (!el) return;
 
-  const stages = ["ALL", ...new Set(_matches.map(m => m.stage).filter(Boolean))];
+  const priority = getAnnouncePhase() || getActivePhase();
+  const present  = PHASE_ORDER.filter(s => _matches.some(m => m.stage === s));
+  if (priority && present.includes(priority)) {
+    present.splice(present.indexOf(priority), 1);
+    present.unshift(priority);
+  }
+  const stages = ["ALL", ...present];
   el.innerHTML = `<div class="phase-pills">` +
     stages.map(s => `
       <button class="phase-pill ${s === _activePhase ? "active" : ""}"
@@ -676,7 +687,7 @@ function buildPredictionsForm() {
     ? _predictions.filter(p => p.participant_id === _existingParticipant.id)
     : [];
   const predMap = {};
-  myPreds.forEach(p => { predMap[p.match_id] = p.pred_result; });
+  myPreds.forEach(p => { predMap[p.match_id] = p; });
 
   // Editing is always open — only matches already kicked off are locked out,
   // and matchups still waiting on a TBD team can't be predicted yet.
@@ -690,8 +701,9 @@ function buildPredictionsForm() {
 
   // Pre-fill _matchPreds with existing picks so they're submitted even if untouched
   for (const m of matches) {
-    if (predMap[m.match_id] && !_matchPreds[m.match_id]) {
-      _matchPreds[m.match_id] = { result: predMap[m.match_id], home: null, away: null };
+    const p = predMap[m.match_id];
+    if (p && !_matchPreds[m.match_id]) {
+      _matchPreds[m.match_id] = { result: p.pred_result, home: p.pred_home_score, away: p.pred_away_score };
     }
   }
 
@@ -737,30 +749,54 @@ function toggleGroup(header) {
   arrow.textContent  = open ? "▸" : "▾";
 }
 
-function predMatchRow(m, existing) {
+function predMatchRow(m, predRow) {
   const hFlag = flag(m.home_team);
   const aFlag = flag(m.away_team);
   const time  = m.kickoff_utc ? toColTime(m.kickoff_utc) : "TBD";
   const tag   = m.group_name ? m.group_name.replace("GROUP_","G.") : (STAGE_LABEL[m.stage] || "");
+  const existing = predRow?.pred_result;
   const selH  = existing === "H" ? " selected-H" : "";
   const selD  = existing === "D" ? " selected-D" : "";
   const selA  = existing === "A" ? " selected-A" : "";
+  const isKnockout = m.stage !== "GROUP_STAGE";
+
+  // Knockout matches don't end in a draw — no "Empate" button there.
+  const drawBtn = isKnockout ? "" :
+    `<button class="pred-btn draw${selD}" onclick="setPred('${m.match_id}','D',this)">Empate</button>`;
+
+  const homeVal = predRow?.pred_home_score ?? "";
+  const awayVal = predRow?.pred_away_score ?? "";
+  const scoreBlock = isKnockout ? `
+    <div class="score-box">
+      <div class="score-box-header">
+        <span class="score-box-emoji">🎯</span>
+        <div>
+          <div class="score-box-title">Marcador Exacto</div>
+          <div class="score-box-sub">Acierta el resultado preciso y suma <strong>+${POINTS.exact_score_bonus} pts</strong> extra</div>
+        </div>
+      </div>
+      <div class="score-inputs">
+        <input id="sh-${m.match_id}" type="number" inputmode="numeric" min="0" max="20" placeholder="0" value="${homeVal}" oninput="updateScore('${m.match_id}')">
+        <span>-</span>
+        <input id="sa-${m.match_id}" type="number" inputmode="numeric" min="0" max="20" placeholder="0" value="${awayVal}" oninput="updateScore('${m.match_id}')">
+      </div>
+    </div>` : "";
+
   return `<div class="pred-match" id="pred-${m.match_id}">
     <div class="pred-match-meta"><span class="pred-time">${time}</span><span class="pred-tag">${tag}</span></div>
     <div class="pred-match-teams">${hFlag} ${esc(m.home_team)} vs ${esc(m.away_team)} ${aFlag}</div>
     <div class="pred-buttons">
       <button class="pred-btn${selH}" onclick="setPred('${m.match_id}','H',this)">${hFlag} ${shortName(m.home_team)}</button>
-      <button class="pred-btn draw${selD}" onclick="setPred('${m.match_id}','D',this)">Empate</button>
+      ${drawBtn}
       <button class="pred-btn${selA}" onclick="setPred('${m.match_id}','A',this)">${shortName(m.away_team)} ${aFlag}</button>
     </div>
+    ${scoreBlock}
   </div>`;
 }
 
 function setPred(matchId, result, btn) {
-  if (!_matchPreds[matchId]) _matchPreds[matchId] = {};
+  if (!_matchPreds[matchId]) _matchPreds[matchId] = { home: null, away: null };
   _matchPreds[matchId].result = result;
-  _matchPreds[matchId].home   = null;
-  _matchPreds[matchId].away   = null;
   const row = document.getElementById(`pred-${matchId}`);
   row.querySelectorAll(".pred-btn").forEach(b => b.className = b.classList.contains("draw") ? "pred-btn draw" : "pred-btn");
   btn.classList.add(`selected-${result}`);
@@ -886,6 +922,33 @@ async function submitPredictions() {
   }
 }
 
+function myPredRowHtml(p, m) {
+  const hasScore = p.pred_home_score != null && p.pred_away_score != null;
+  const pickLabel = hasScore
+    ? `${p.pred_result === "A" ? flag(m.away_team) : flag(m.home_team)} ${p.pred_home_score}-${p.pred_away_score}`
+    : p.pred_result === "H"
+      ? `${flag(m.home_team)} ${shortName(m.home_team)}`
+      : p.pred_result === "A"
+        ? `${flag(m.away_team)} ${shortName(m.away_team)}`
+        : "🤝 Empate";
+  let statusHtml = "";
+  if (m.status === "FINISHED" && m.home_score !== null) {
+    const actual = m.winner === "HOME_TEAM" ? "H" : m.winner === "AWAY_TEAM" ? "A" : "D";
+    statusHtml = p.pred_result === actual
+      ? `<span class="my-pred-status ok">✅</span>`
+      : `<span class="my-pred-status no">❌</span>`;
+  }
+  const dateLabel = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "Fecha TBD";
+  return `<div class="my-pred-row">
+    <div class="my-pred-match">
+      ${esc(shortName(m.home_team))} vs ${esc(shortName(m.away_team))}
+      <div class="my-pred-date">${dateLabel}</div>
+    </div>
+    <div class="my-pred-pick">${pickLabel}</div>
+    ${statusHtml}
+  </div>`;
+}
+
 // ─── Mis Pronósticos (summary view) ────────────────────────────────────────
 function loadMyPredictions() {
   const body = document.getElementById("my-preds-body");
@@ -941,32 +1004,22 @@ function loadMyPredictions() {
       const ma = _matches.find(m => m.match_id === a.match_id);
       const mb = _matches.find(m => m.match_id === b.match_id);
       return new Date(ma?.kickoff_utc || 0) - new Date(mb?.kickoff_utc || 0);
-    });
-    html += `<div class="my-preds-list">` + sorted.map(p => {
-      const m = _matches.find(mm => mm.match_id === p.match_id);
-      if (!m) return "";
-      const pickLabel = p.pred_result === "H"
-        ? `${flag(m.home_team)} ${shortName(m.home_team)}`
-        : p.pred_result === "A"
-          ? `${flag(m.away_team)} ${shortName(m.away_team)}`
-          : "🤝 Empate";
-      let statusHtml = "";
-      if (m.status === "FINISHED" && m.home_score !== null) {
-        const actual = m.winner === "HOME_TEAM" ? "H" : m.winner === "AWAY_TEAM" ? "A" : "D";
-        statusHtml = p.pred_result === actual
-          ? `<span class="my-pred-status ok">✅</span>`
-          : `<span class="my-pred-status no">❌</span>`;
-      }
-      const dateLabel = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "Fecha TBD";
-      return `<div class="my-pred-row">
-        <div class="my-pred-match">
-          ${esc(shortName(m.home_team))} vs ${esc(shortName(m.away_team))}
-          <div class="my-pred-date">${dateLabel}</div>
+    }).map(p => ({ p, m: _matches.find(mm => mm.match_id === p.match_id) })).filter(x => x.m);
+
+    const knockout = sorted.filter(x => x.m.stage !== "GROUP_STAGE");
+    const group    = sorted.filter(x => x.m.stage === "GROUP_STAGE");
+
+    if (knockout.length) {
+      html += `<div class="my-preds-list">` + knockout.map(x => myPredRowHtml(x.p, x.m)).join("") + `</div>`;
+    }
+    if (group.length) {
+      html += `<div class="pred-group">
+        <div class="pred-group-header" onclick="toggleGroup(this)">📋 Fase de Grupos (${group.length}) <span>▸</span></div>
+        <div class="pred-group-body" style="display:none">
+          <div class="my-preds-list">${group.map(x => myPredRowHtml(x.p, x.m)).join("")}</div>
         </div>
-        <div class="my-pred-pick">${pickLabel}</div>
-        ${statusHtml}
       </div>`;
-    }).join("") + `</div>`;
+    }
   } else {
     html += `<p class="hint">Aún no has hecho pronósticos. Toca "⚽ Unirme a la Polla" para empezar.</p>`;
   }
