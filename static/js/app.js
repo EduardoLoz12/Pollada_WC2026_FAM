@@ -139,6 +139,7 @@ async function loadAllData() {
 
   renderLeaderboard();
   renderMatches();
+  renderBracket();
   renderGroups();
   renderScorers();
   populateTeamsList();
@@ -363,10 +364,11 @@ function matchCard(m) {
     scoreHtml = `<div class="match-score scheduled">${time}</div>`;
   }
 
-  // Family vote split for this match
+  // Family vote split for this match — no "Empate" in knockout stages (no draws there)
+  const isKnockout = m.stage !== "GROUP_STAGE";
   const votes = _predictions.filter(p => p.match_id === m.match_id);
   const vH = votes.filter(v => v.pred_result === "H").length;
-  const vD = votes.filter(v => v.pred_result === "D").length;
+  const vD = isKnockout ? 0 : votes.filter(v => v.pred_result === "D").length;
   const vA = votes.filter(v => v.pred_result === "A").length;
   const tot = vH + vD + vA;
   let votesHtml = "";
@@ -380,7 +382,7 @@ function matchCard(m) {
       </div>
       <div class="votes-labels">
         <span class="vl-h">${vH} ${esc(shortName(m.home_team))}</span>
-        <span class="vl-d">${vD} Empate</span>
+        ${isKnockout ? "" : `<span class="vl-d">${vD} Empate</span>`}
         <span class="vl-a">${vA} ${esc(shortName(m.away_team))}</span>
       </div>
     </div>`;
@@ -404,6 +406,51 @@ function matchCard(m) {
 }
 
 // ─── Groups ───────────────────────────────────────────────────────────────
+const BRACKET_STAGES = ["ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+
+function renderBracket() {
+  const el = document.getElementById("bracket");
+  if (!el) return;
+
+  const rounds = BRACKET_STAGES
+    .map(stage => ({
+      stage,
+      matches: _matches.filter(m => m.stage === stage)
+        .sort((a, b) => new Date(a.kickoff_utc || 0) - new Date(b.kickoff_utc || 0)),
+    }))
+    // Skip rounds where every matchup is still TBD vs TBD — football-data
+    // hasn't resolved that bracket slot yet, so it's just noise for now.
+    .filter(r => r.matches.some(m => m.home_team !== "TBD" || m.away_team !== "TBD"));
+
+  if (!rounds.length) { el.innerHTML = ""; return; }
+
+  el.innerHTML = rounds.map(r => `
+    <div class="bracket-round-block">
+      <div class="bracket-round-header">${STAGE_LABEL[r.stage] || r.stage}</div>
+      ${r.matches.map(bracketMatchHtml).join("")}
+    </div>`).join("");
+  applyTwemoji("bracket");
+}
+
+function bracketMatchHtml(m) {
+  if (m.home_team === "TBD" && m.away_team === "TBD") return "";
+  const finished = m.status === "FINISHED";
+  const hCls = finished ? (m.winner === "HOME_TEAM" ? " winner" : " loser") : "";
+  const aCls = finished ? (m.winner === "AWAY_TEAM" ? " winner" : " loser") : "";
+  const hLabel = m.home_team === "TBD" ? "Por definir" : esc(shortName(m.home_team));
+  const aLabel = m.away_team === "TBD" ? "Por definir" : esc(shortName(m.away_team));
+  const middle = finished ? `${m.home_score} - ${m.away_score}` : "vs";
+  const dateLabel = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "";
+  return `<div class="bracket-match">
+    <div class="bracket-side${hCls}">${flag(m.home_team)} ${hLabel}</div>
+    <div class="bracket-vs">
+      ${dateLabel ? `<div class="bracket-date">${dateLabel}</div>` : ""}
+      <div>${middle}</div>
+    </div>
+    <div class="bracket-side away${aCls}">${aLabel} ${flag(m.away_team)}</div>
+  </div>`;
+}
+
 async function renderGroups() {
   const el = document.getElementById("groups-list");
   if (!el) return;

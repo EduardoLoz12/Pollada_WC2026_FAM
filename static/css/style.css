@@ -479,6 +479,59 @@ body.has-ticker .tabs  { top: 188px; }
   animation: pulse 1.5s infinite;
 }
 
+/* ─── Knockout bracket (lista vertical por ronda) ─────────────────────── */
+.bracket-round-block { margin-bottom: 18px; }
+
+.bracket-round-header {
+  font-size: .8rem;
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 8px;
+}
+
+.bracket-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.bracket-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  font-size: .85rem;
+  color: var(--text);
+}
+
+.bracket-side.away { justify-content: flex-end; text-align: right; }
+.bracket-side.winner { color: var(--green); font-weight: 800; }
+.bracket-side.loser  { color: var(--muted); }
+.bracket-side img.emoji { height: 1.1em; width: 1.1em; vertical-align: -0.18em; }
+
+.bracket-vs {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 64px;
+  text-align: center;
+}
+
+.bracket-date {
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
 /* ─── Group standings ──────────────────────────────────────────────────── */
 .group-section {
   background: var(--card);
