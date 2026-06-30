@@ -145,7 +145,7 @@ def refresh_matches():
 
     # Never downgrade what's already in the DB (stale replica protection)
     existing = {r["match_id"]: r for r in sb_get(
-        "wc_matches?select=match_id,status,home_score,away_score,home_team,away_team"
+        "wc_matches?select=match_id,status,home_score,away_score,home_team,away_team,winner"
     )}
 
     now  = datetime.now(timezone.utc).isoformat()
@@ -155,6 +155,28 @@ def refresh_matches():
         ft    = score.get("fullTime", {})
         hs    = ft.get("home")
         as_   = ft.get("away")
+        winner = score.get("winner")
+
+        if score.get("duration") == "PENALTY_SHOOTOUT":
+            # football-data overloads fullTime with penalty-shootout numbers
+            # for these matches, and winner comes back null OR (just as
+            # often) the nonsensical "DRAW" — a shootout always has a winner,
+            # so neither is usable as-is. The "real" match score (what
+            # predictions are judged against) is regularTime; derive the
+            # winner from the penalties tally when the API itself didn't.
+            reg = score.get("regularTime") or {}
+            if reg.get("home") is not None:
+                hs, as_ = reg["home"], reg["away"]
+            if winner is None or winner == "DRAW":
+                pens = score.get("penalties") or {}
+                ph, pa = pens.get("home"), pens.get("away")
+                if ph is not None and pa is not None and ph != pa:
+                    winner = "HOME_TEAM" if ph > pa else "AWAY_TEAM"
+                else:
+                    # penalties data is itself missing/tied/broken upstream —
+                    # leave winner unset, needs a manual fix (see CLAUDE.md)
+                    winner = None
+
         st_raw = m.get("status", "SCHEDULED")
         st = "IN_PLAY" if st_raw in ("IN_PLAY","PAUSED") else ("FINISHED" if st_raw in ("FINISHED","AWARDED") else "SCHEDULED")
         stage_raw = m.get("stage", "") or m.get("round", "") or ""
@@ -168,6 +190,8 @@ def refresh_matches():
                 and (hs != ex.get("home_score") or as_ != ex.get("away_score"))):
             continue  # match already finished — a later replica reporting a
                        # different score is the bug, not a correction; result is locked
+        if ex and ex.get("status") == "FINISHED" and ex.get("winner") and not winner:
+            winner = ex["winner"]  # don't let a later broken poll null out a known winner
 
         home_team = (m.get("homeTeam") or {}).get("name") or "TBD"
         away_team = (m.get("awayTeam") or {}).get("name") or "TBD"
@@ -186,7 +210,7 @@ def refresh_matches():
             "away_team":   away_team,
             "home_score":  hs,
             "away_score":  as_,
-            "winner":      score.get("winner"),
+            "winner":      winner,
             "status":      st,
             "stage":       map_stage(stage_raw),
             "group_name":  map_group(group_raw),

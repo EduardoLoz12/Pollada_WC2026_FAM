@@ -981,9 +981,13 @@ function myPredRowHtml(p, m) {
   let statusHtml = "";
   if (m.status === "FINISHED" && m.home_score !== null) {
     const actual = m.winner === "HOME_TEAM" ? "H" : m.winner === "AWAY_TEAM" ? "A" : "D";
-    statusHtml = p.pred_result === actual
-      ? `<span class="my-pred-status ok">✅</span>`
-      : `<span class="my-pred-status no">❌</span>`;
+    const winnerOk = p.pred_result === actual;
+    let badges = `<span class="my-pred-status ${winnerOk ? "ok" : "no"}" title="Ganador">${winnerOk ? "✅" : "❌"}</span>`;
+    if (hasScore) {
+      const exactOk = p.pred_home_score === m.home_score && p.pred_away_score === m.away_score;
+      badges += `<span class="my-pred-status ${exactOk ? "ok" : "no"}" title="Marcador exacto">${exactOk ? "✅" : "❌"}</span>`;
+    }
+    statusHtml = `<div class="my-pred-status-group">${badges}</div>`;
   }
   const dateLabel = m.kickoff_utc ? toColDateShort(m.kickoff_utc) : "Fecha TBD";
   return `<div class="my-pred-row">
