@@ -253,10 +253,12 @@ function calcPoints(participantId) {
 
     if (pred.pred_result === actual) {
       total += m.stage === "GROUP_STAGE" ? POINTS.correct_result_group : POINTS.correct_result;
-      if (pred.pred_home_score === m.home_score &&
-          pred.pred_away_score === m.away_score) {
-        total += POINTS.exact_score_bonus;
-      }
+    }
+    // Independent of the winner pick — a penalty-shootout match can have the
+    // right 90-min score (1-1) with the "wrong" winner guess, and vice versa.
+    if (pred.pred_home_score === m.home_score &&
+        pred.pred_away_score === m.away_score) {
+      total += POINTS.exact_score_bonus;
     }
   }
   return total;

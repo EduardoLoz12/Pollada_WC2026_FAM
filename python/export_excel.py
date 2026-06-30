@@ -78,10 +78,11 @@ def calc_points(preds, matches):
         if p.get("pred_result") == actual:
             total += POINTS["correct_result_group"] if m.get("stage") == "GROUP_STAGE" else POINTS["correct_result"]
             correct += 1
-            if p.get("pred_home_score") == m["home_score"] and \
-               p.get("pred_away_score") == m["away_score"]:
-                total += POINTS["exact_score_bonus"]
-                exact += 1
+        # Independent of the winner pick — see app.js calcPoints() for why.
+        if p.get("pred_home_score") == m["home_score"] and \
+           p.get("pred_away_score") == m["away_score"]:
+            total += POINTS["exact_score_bonus"]
+            exact += 1
     return total, correct, exact
 
 
