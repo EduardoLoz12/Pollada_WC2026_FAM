@@ -52,6 +52,21 @@ function getEditablePhases() {
   return announce && announce !== active ? [active, announce] : [active];
 }
 
+// Special bets (champion/runner-up/top scorer) are closed for editing — view-only.
+function specialBetsLocked() {
+  return true;
+}
+
+function applySpecialBetsLock() {
+  const locked = specialBetsLocked();
+  ["special-champion", "special-runner", "special-scorer"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = locked;
+  });
+  const msg = document.getElementById("special-locked-msg");
+  if (msg) msg.style.display = locked ? "block" : "none";
+}
+
 function relativeDayLabel(utcStr) {
   const fmt = d => d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
   const target   = fmt(new Date(utcStr));
@@ -713,9 +728,11 @@ function nextStep() {
 
 function updateStep2Heading() {
   const el = document.getElementById("step2-heading");
-  if (!el) return;
-  const announce = getAnnouncePhase();
-  el.textContent = announce ? `⚡ Seguir completando ${STAGE_LABEL[announce] || announce}` : "📋 Mis Pronósticos";
+  if (el) {
+    const announce = getAnnouncePhase();
+    el.textContent = announce ? `⚡ Seguir completando ${STAGE_LABEL[announce] || announce}` : "📋 Mis Pronósticos";
+  }
+  applySpecialBetsLock();
 }
 
 // Build predictions form — current active phase, plus the upcoming knockout
@@ -916,8 +933,8 @@ async function submitPredictions() {
       if (predErr) throw new Error(predErr.message);
     }
 
-    // 3. Insert/update special bets
-    if (champion || runner || scorer) {
+    // 3. Insert/update special bets (locked once semifinals kick off)
+    if (!specialBetsLocked() && (champion || runner || scorer)) {
       const { error: sErr } = await sb.from("special_bets").upsert({
         participant_id: pid,
         champion:       champion || null,
