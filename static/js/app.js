@@ -1076,15 +1076,33 @@ function loadMyPredictions() {
       return new Date(ma?.kickoff_utc || 0) - new Date(mb?.kickoff_utc || 0);
     }).map(p => ({ p, m: _matches.find(mm => mm.match_id === p.match_id) })).filter(x => x.m);
 
-    const knockout = sorted.filter(x => x.m.stage !== "GROUP_STAGE");
+    const activePhase = getActivePhase();
+    const current  = sorted.filter(x => x.m.stage !== "GROUP_STAGE" && x.m.stage === activePhase);
+    const past     = sorted.filter(x => x.m.stage !== "GROUP_STAGE" && x.m.stage !== activePhase);
     const group    = sorted.filter(x => x.m.stage === "GROUP_STAGE");
 
-    if (knockout.length) {
-      html += `<div class="my-preds-list">` + knockout.map(x => myPredRowHtml(x.p, x.m)).join("") + `</div>`;
+    if (current.length) {
+      html += `<div class="my-preds-list">` + current.map(x => myPredRowHtml(x.p, x.m)).join("") + `</div>`;
+    }
+    // Older knockout rounds (already decided) fold away by default — same
+    // pattern as Fase de Grupos — instead of cluttering the current-phase view.
+    const pastByStage = {};
+    for (const x of past) {
+      (pastByStage[x.m.stage] ||= []).push(x);
+    }
+    for (const stage of PHASE_ORDER) {
+      const rows = pastByStage[stage];
+      if (!rows || !rows.length) continue;
+      html += `<div class="pred-group">
+        <div class="pred-group-header" onclick="toggleGroup(this)">${STAGE_LABEL[stage] || stage} (${rows.length}) <span>▸</span></div>
+        <div class="pred-group-body" style="display:none">
+          <div class="my-preds-list">${rows.map(x => myPredRowHtml(x.p, x.m)).join("")}</div>
+        </div>
+      </div>`;
     }
     if (group.length) {
       html += `<div class="pred-group">
-        <div class="pred-group-header" onclick="toggleGroup(this)">📋 Fase de Grupos (${group.length}) <span>▸</span></div>
+        <div class="pred-group-header" onclick="toggleGroup(this)">Fase de Grupos (${group.length}) <span>▸</span></div>
         <div class="pred-group-body" style="display:none">
           <div class="my-preds-list">${group.map(x => myPredRowHtml(x.p, x.m)).join("")}</div>
         </div>
