@@ -162,8 +162,9 @@ header h1 {
 .btn-join-sub { display: inline-block; font-size: .78em; font-weight: 700; opacity: .85; margin-top: 2px; }
 
 .btn-join.btn-join-knockout {
-  background: linear-gradient(135deg, #8e44ec, #6c2bd9);
-  box-shadow: 0 4px 16px rgba(142,68,236,.35);
+  background: linear-gradient(135deg, #2a9d8f, #21807a);
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  color: #eafffb;
 }
 
 .join-closed {
