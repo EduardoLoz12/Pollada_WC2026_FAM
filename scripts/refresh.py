@@ -157,16 +157,25 @@ def refresh_matches():
         as_   = ft.get("away")
         winner = score.get("winner")
 
-        if score.get("duration") == "PENALTY_SHOOTOUT":
-            # football-data overloads fullTime with penalty-shootout numbers
-            # for these matches, and winner comes back null OR (just as
-            # often) the nonsensical "DRAW" — a shootout always has a winner,
-            # so neither is usable as-is. The "real" match score (what
-            # predictions are judged against) is regularTime; derive the
-            # winner from the penalties tally when the API itself didn't.
+        duration = score.get("duration")
+        if duration in ("EXTRA_TIME", "PENALTY_SHOOTOUT"):
+            # Predictions (incl. exact-score bonus) are always judged on the
+            # regular-time (90') score, never extra time — winner/advancement
+            # still reflects the real match outcome via the `winner` field.
             reg = score.get("regularTime") or {}
             if reg.get("home") is not None:
                 hs, as_ = reg["home"], reg["away"]
+            else:
+                et = score.get("extraTime") or {}
+                if et.get("home") is not None and ft.get("home") is not None:
+                    hs, as_ = ft["home"] - et["home"], ft["away"] - et["away"]
+
+        if duration == "PENALTY_SHOOTOUT":
+            # football-data overloads fullTime with penalty-shootout numbers
+            # for these matches, and winner comes back null OR (just as
+            # often) the nonsensical "DRAW" — a shootout always has a winner,
+            # so neither is usable as-is. Derive the winner from the
+            # penalties tally when the API itself didn't.
             if winner is None or winner == "DRAW":
                 pens = score.get("penalties") or {}
                 ph, pa = pens.get("home"), pens.get("away")
