@@ -201,6 +201,10 @@ def refresh_matches():
                        # different score is the bug, not a correction; result is locked
         if ex and ex.get("status") == "FINISHED" and ex.get("winner") and not winner:
             winner = ex["winner"]  # don't let a later broken poll null out a known winner
+        if (ex and ex.get("status") == "FINISHED" and ex.get("winner")
+                and winner and winner != ex.get("winner")):
+            continue  # winner locked same as score — a later replica flipping
+                      # it (e.g. to DRAW) is the bug, not a correction
 
         home_team = (m.get("homeTeam") or {}).get("name") or "TBD"
         away_team = (m.get("awayTeam") or {}).get("name") or "TBD"
