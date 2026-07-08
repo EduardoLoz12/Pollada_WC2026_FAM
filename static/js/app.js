@@ -52,9 +52,9 @@ function getEditablePhases() {
   return announce && announce !== active ? [active, announce] : [active];
 }
 
-// Special bets (champion/runner-up/top scorer) are closed for editing — view-only.
+// Special bets (champion/runner-up/top scorer) — editing re-enabled 2026-07-04.
 function specialBetsLocked() {
-  return true;
+  return false;
 }
 
 function applySpecialBetsLock() {
@@ -874,6 +874,21 @@ function updateScore(matchId) {
   if (!_matchPreds[matchId]) _matchPreds[matchId] = {};
   _matchPreds[matchId].home = isNaN(h) ? null : h;
   _matchPreds[matchId].away = isNaN(a) ? null : a;
+
+  // Knockout matches can't end in a draw — an entered exact score always
+  // implies a winner, so infer/select it even if the H/A button wasn't
+  // clicked (typing the score alone must be enough to save the pick).
+  if (!isNaN(h) && !isNaN(a) && h !== a) {
+    const result = h > a ? "H" : "A";
+    _matchPreds[matchId].result = result;
+    const row = document.getElementById(`pred-${matchId}`);
+    if (row) {
+      row.querySelectorAll(".pred-btn").forEach(b => b.className = b.classList.contains("draw") ? "pred-btn draw" : "pred-btn");
+      const btns = row.querySelectorAll(".pred-btn:not(.draw)");
+      const target = result === "H" ? btns[0] : btns[1];
+      if (target) target.classList.add(`selected-${result}`);
+    }
+  }
 }
 
 // Submit predictions — writes directly to Supabase from browser
