@@ -52,9 +52,11 @@ function getEditablePhases() {
   return announce && announce !== active ? [active, announce] : [active];
 }
 
-// Special bets (champion/runner-up/top scorer) — editing re-enabled 2026-07-04.
+// Special bets (champion/runner-up/top scorer) — re-enabled 2026-07-04 for one
+// last window, closing again at 2026-07-08 00:00 Colombia (UTC-5, no DST).
+const SPECIAL_BETS_LOCK_AT = new Date("2026-07-08T05:00:00Z");
 function specialBetsLocked() {
-  return false;
+  return Date.now() >= SPECIAL_BETS_LOCK_AT.getTime();
 }
 
 function applySpecialBetsLock() {
