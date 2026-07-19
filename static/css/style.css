@@ -186,6 +186,47 @@ header h1 {
   50%      { box-shadow: 0 0 18px rgba(245,166,35,.55); }
 }
 
+/* ─── Champion banner (shown once the FINAL is decided) ──────────────────── */
+.champion-banner {
+  margin: 4px 0 16px;
+  padding: 20px 16px;
+  border-radius: 18px;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(245,166,35,.16), rgba(245,166,35,.04));
+  border: 1.5px solid var(--gold);
+  animation: prize-pulse 2.4s ease-in-out infinite;
+}
+.champion-banner-confetti { font-size: 1.3rem; margin-bottom: 4px; }
+.champion-banner-title {
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 10px;
+}
+.champion-banner-avatar { font-size: 2.6rem; line-height: 1; margin-bottom: 6px; }
+.champion-banner-avatar img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+.champion-banner-name { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+.champion-banner-points { color: var(--gold2); font-weight: 700; margin: 2px 0 10px; }
+.champion-banner-sub { font-size: .82rem; color: var(--muted); max-width: 420px; margin: 0 auto; line-height: 1.4; }
+.champion-banner-claim {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(245,166,35,.14);
+  border: 1px solid var(--gold);
+  color: var(--gold2);
+  font-size: .85rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.champion-banner-claim strong { color: var(--gold); font-weight: 800; }
+.champion-banner-confetti img.emoji,
+.champion-banner-avatar img.emoji,
+.champion-banner-claim img.emoji { height: 1.1em; width: 1.1em; vertical-align: -0.15em; }
+
 /* ─── Phase ticker (dinámico) ──────────────────────────────────────────── */
 /* Hidden by default — only takes up space while a phase transition is
    imminent/active, so it doesn't push header/tabs down the rest of the time. */

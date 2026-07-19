@@ -228,6 +228,8 @@ function renderLeaderboard() {
     predCount: _predictions.filter(x => x.participant_id === p.id).length,
   })).sort((a, b) => b.points - a.points || b.correct - a.correct);
 
+  renderChampionBanner(board[0]);
+
   const MEDALS = ["🥇","🥈","🥉"];
   const lastRank = board.length;
 
@@ -257,6 +259,27 @@ function renderLeaderboard() {
       <div class="points">${p.points}<small>pts</small></div>
     </div>`;
   }).join("");
+}
+
+// Champion announcement — only once the FINAL is actually decided, and always
+// pulled live from the computed leaderboard (never hardcode a name/score here).
+function renderChampionBanner(leader) {
+  const el = document.getElementById("champion-banner");
+  if (!el) return;
+  const final = _matches.find(m => m.stage === "FINAL" && m.status === "FINISHED" && m.winner && m.winner !== "DRAW");
+  if (!final || !leader || leader.points <= 0) { el.innerHTML = ""; return; }
+
+  const avatar = leader.photo_url ? `<img src="${leader.photo_url}" alt="">` : (leader.avatar || "🏆");
+  el.innerHTML = `<div class="champion-banner">
+    <div class="champion-banner-confetti">🎉 🏆 🎊</div>
+    <div class="champion-banner-title">¡Tenemos Campeón de la Polla!</div>
+    <div class="champion-banner-avatar">${avatar}</div>
+    <div class="champion-banner-name">${esc(leader.name)}</div>
+    <div class="champion-banner-points">${leader.points} pts</div>
+    <div class="champion-banner-sub">Gracias a toda la familia por jugar la Polla Mundialera 2026, ha sido un evento divertido y nos vemos en futuras competiciones. ¡Gracias totales!</div>
+    <div class="champion-banner-claim">🎁 ${esc(leader.name)}, contáctate con el organizador para reclamar tu premio de <strong>S/ 500</strong></div>
+  </div>`;
+  applyTwemoji("champion-banner");
 }
 
 // Special bets were typed as free text all tournament long ("Francia" vs
