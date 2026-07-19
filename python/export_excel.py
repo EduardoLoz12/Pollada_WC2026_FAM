@@ -9,7 +9,7 @@ Sheets generated:
   4. Grupos          — group standings
   5. Goleadores      — top scorers
 """
-import os, sys, json, requests
+import os, sys, json, re, unicodedata, requests
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
@@ -65,7 +65,51 @@ def col_time(utc_str):
     return col.strftime("%d/%m %H:%M")
 
 
-def calc_points(preds, matches):
+# Special bets were typed as free text ("Francia" vs "France", "Mbappe" vs
+# "Kylian Mbappé") — port of the same fuzzy matching in app.js calcPoints().
+def normalize_name(s):
+    s = unicodedata.normalize("NFD", (s or "").strip().lower())
+    return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+TEAM_ALIASES = {
+    "francia":"France","espana":"Spain","inglaterra":"England","alemania":"Germany",
+    "holanda":"Netherlands","paises bajos":"Netherlands","belgica":"Belgium",
+    "marruecos":"Morocco","egipto":"Egypt","suiza":"Switzerland",
+    "costa de marfil":"Ivory Coast","corea del sur":"South Korea","corea":"South Korea",
+    "estados unidos":"United States","eeuu":"United States","ee.uu.":"United States",
+    "gales":"Wales","escocia":"Scotland","croacia":"Croatia","cabo verde":"Cape Verde",
+    "arabia saudita":"Saudi Arabia","arabia saudi":"Saudi Arabia",
+    "nueva zelanda":"New Zealand","sudafrica":"South Africa","irlanda":"Republic of Ireland",
+    "chequia":"Czechia","republica checa":"Czechia","ucrania":"Ukraine","suecia":"Sweden",
+    "noruega":"Norway","dinamarca":"Denmark","polonia":"Poland","hungria":"Hungary",
+    "grecia":"Greece","turquia":"Turkey","islandia":"Iceland","finlandia":"Finland",
+    "eslovenia":"Slovenia","eslovaquia":"Slovakia","rumania":"Romania",
+    "barein":"Bahrain","bahrein":"Bahrain","irak":"Iraq","jordania":"Jordan","catar":"Qatar",
+    "iran":"IR Iran","tunez":"Tunisia","argelia":"Algeria","camerun":"Cameroon",
+    "rd congo":"Congo DR","congo":"Congo DR","curazao":"Curaçao","surinam":"Suriname",
+    "trinidad y tobago":"Trinidad and Tobago","republica dominicana":"Dominican Republic",
+    "panama":"Panama","haiti":"Haiti","peru":"Peru","mexico":"Mexico","brasil":"Brazil",
+    "bosnia y herzegovina":"Bosnia-Herzegovina","bosnia":"Bosnia-Herzegovina",
+}
+
+def teams_match(bet_value, canonical_team):
+    if not bet_value or not canonical_team:
+        return False
+    norm_bet = normalize_name(bet_value)
+    resolved = TEAM_ALIASES.get(norm_bet, bet_value)
+    return normalize_name(resolved) == normalize_name(canonical_team)
+
+def scorer_matches(bet_value, actual_full_name):
+    if not bet_value or not actual_full_name:
+        return False
+    a = normalize_name(bet_value)
+    b = normalize_name(actual_full_name)
+    if a == b:
+        return True
+    return any(len(part) > 2 and (part == a or a in part or part in a) for part in b.split(" "))
+
+
+def calc_points(preds, matches, special_bet=None, scorers=None):
     total = 0
     correct = 0
     exact = 0
@@ -83,6 +127,23 @@ def calc_points(preds, matches):
            p.get("pred_away_score") == m["away_score"]:
             total += POINTS["exact_score_bonus"]
             exact += 1
+
+    if special_bet:
+        final = next((x for x in matches if x.get("stage") == "FINAL"
+                       and x.get("status") == "FINISHED" and x.get("winner") not in (None, "DRAW")), None)
+        if final:
+            champion_team  = final["home_team"] if final["winner"] == "HOME_TEAM" else final["away_team"]
+            runner_up_team = final["away_team"] if final["winner"] == "HOME_TEAM" else final["home_team"]
+            if special_bet.get("champion") and teams_match(special_bet["champion"], champion_team):
+                total += POINTS["champion"]
+            if special_bet.get("runner_up") and teams_match(special_bet["runner_up"], runner_up_team):
+                total += POINTS["runner_up"]
+        if scorers and special_bet.get("top_scorer"):
+            top_goals = scorers[0]["goals"]
+            top_scorers = [s for s in scorers if s["goals"] == top_goals]
+            if any(scorer_matches(special_bet["top_scorer"], s["player_name"]) for s in top_scorers):
+                total += POINTS["top_scorer"]
+
     return total, correct, exact
 
 
@@ -107,7 +168,7 @@ def auto_width(ws, min_w=8, max_w=40):
 
 # ─── Sheet builders ───────────────────────────────────────────────────────────
 
-def build_leaderboard(wb, participants, predictions, matches, special_bets):
+def build_leaderboard(wb, participants, predictions, matches, special_bets, scorers=None):
     ws = wb.create_sheet("Tabla General")
     ws.sheet_view.showGridLines = False
     ws.sheet_properties.tabColor = GOLD
@@ -125,7 +186,7 @@ def build_leaderboard(wb, participants, predictions, matches, special_bets):
     for p in participants:
         my_preds = [x for x in predictions if x["participant_id"] == p["id"]]
         sp = next((s for s in special_bets if s["participant_id"] == p["id"]), {})
-        pts, correct, exact = calc_points(my_preds, matches)
+        pts, correct, exact = calc_points(my_preds, matches, special_bet=sp, scorers=scorers)
         board.append((pts, correct, exact, p, my_preds, sp))
 
     board.sort(key=lambda x: (-x[0], -x[1]))
@@ -305,7 +366,7 @@ def main():
     wb = openpyxl.Workbook()
     wb.remove(wb.active)  # remove default sheet
 
-    build_leaderboard(wb, participants, predictions, matches, special_bets)
+    build_leaderboard(wb, participants, predictions, matches, special_bets, scorers=scorers)
     build_predictions(wb, participants, predictions, matches)
     build_matches(wb, matches)
     build_groups(wb, standings)
