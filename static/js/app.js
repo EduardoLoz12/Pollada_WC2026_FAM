@@ -5,7 +5,7 @@
 // ─── Init ──────────────────────────────────────────────────────────────────
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let _matches = [], _participants = [], _predictions = [], _specialBets = [];
+let _matches = [], _participants = [], _predictions = [], _specialBets = [], _scorers = [];
 let _selectedAvatar = AVATARS[0];
 let _matchPreds = {};
 let _currentStep = 1;
@@ -143,16 +143,18 @@ async function fetchAllPredictions() {
 }
 
 async function loadAllData() {
-  const [matches, participants, predictions, specials] = await Promise.all([
+  const [matches, participants, predictions, specials, scorers] = await Promise.all([
     sb.from("wc_matches").select("*").order("kickoff_utc"),
     sb.from("participants").select("*").order("created_at"),
     fetchAllPredictions(),
     sb.from("special_bets").select("*"),
+    sb.from("scorers").select("*").order("goals", { ascending: false }),
   ]);
   _matches      = matches.data      || [];
   _participants = participants.data || [];
   _predictions  = predictions      || [];
   _specialBets  = specials.data     || [];
+  _scorers      = scorers.data      || [];
 
   renderLeaderboard();
   renderMatches();
@@ -257,6 +259,49 @@ function renderLeaderboard() {
   }).join("");
 }
 
+// Special bets were typed as free text all tournament long ("Francia" vs
+// "France", "Mbappe" vs "Kylian Mbappé") — normalize accents/case and allow
+// known Spanish aliases / partial name matches instead of requiring an exact string.
+function normalizeName(s) {
+  return (s || "").toString().normalize("NFD").replace(new RegExp("[̀-ͯ]", "g"), "").toLowerCase().trim();
+}
+
+const TEAM_ALIASES = {
+  "francia":"France","espana":"Spain","inglaterra":"England","alemania":"Germany",
+  "holanda":"Netherlands","paises bajos":"Netherlands","belgica":"Belgium",
+  "marruecos":"Morocco","egipto":"Egypt","suiza":"Switzerland",
+  "costa de marfil":"Ivory Coast","corea del sur":"South Korea","corea":"South Korea",
+  "estados unidos":"United States","eeuu":"United States","ee.uu.":"United States",
+  "gales":"Wales","escocia":"Scotland","croacia":"Croatia","cabo verde":"Cape Verde",
+  "arabia saudita":"Saudi Arabia","arabia saudi":"Saudi Arabia",
+  "nueva zelanda":"New Zealand","sudafrica":"South Africa","irlanda":"Republic of Ireland",
+  "chequia":"Czechia","republica checa":"Czechia","ucrania":"Ukraine","suecia":"Sweden",
+  "noruega":"Norway","dinamarca":"Denmark","polonia":"Poland","hungria":"Hungary",
+  "grecia":"Greece","turquia":"Turkey","islandia":"Iceland","finlandia":"Finland",
+  "eslovenia":"Slovenia","eslovaquia":"Slovakia","rumania":"Romania","rumania":"Romania",
+  "barein":"Bahrain","bahrein":"Bahrain","irak":"Iraq","jordania":"Jordan","catar":"Qatar",
+  "iran":"IR Iran","tunez":"Tunisia","argelia":"Algeria","camerun":"Cameroon",
+  "rd congo":"Congo DR","congo":"Congo DR","curazao":"Curaçao","surinam":"Suriname",
+  "trinidad y tobago":"Trinidad and Tobago","republica dominicana":"Dominican Republic",
+  "panama":"Panama","haiti":"Haiti","peru":"Peru","mexico":"Mexico","brasil":"Brazil",
+  "bosnia y herzegovina":"Bosnia-Herzegovina","bosnia":"Bosnia-Herzegovina",
+};
+
+function teamsMatch(betValue, canonicalTeam) {
+  if (!betValue || !canonicalTeam) return false;
+  const normBet = normalizeName(betValue);
+  const resolved = TEAM_ALIASES[normBet] || betValue;
+  return normalizeName(resolved) === normalizeName(canonicalTeam);
+}
+
+function scorerMatches(betValue, actualFullName) {
+  if (!betValue || !actualFullName) return false;
+  const a = normalizeName(betValue);
+  const b = normalizeName(actualFullName);
+  if (a === b) return true;
+  return b.split(" ").some(part => part.length > 2 && (part === a || a.includes(part) || part.includes(a)));
+}
+
 function calcPoints(participantId) {
   let total = 0;
   const myPreds = _predictions.filter(p => p.participant_id === participantId);
@@ -276,6 +321,23 @@ function calcPoints(participantId) {
     if (pred.pred_home_score === m.home_score &&
         pred.pred_away_score === m.away_score) {
       total += POINTS.exact_score_bonus;
+    }
+  }
+
+  // Special bets — only resolvable once the FINAL has been played / scorers are in.
+  const bet = _specialBets.find(s => s.participant_id === participantId);
+  if (bet) {
+    const final = _matches.find(m => m.stage === "FINAL" && m.status === "FINISHED" && m.winner && m.winner !== "DRAW");
+    if (final) {
+      const championTeam = final.winner === "HOME_TEAM" ? final.home_team : final.away_team;
+      const runnerUpTeam = final.winner === "HOME_TEAM" ? final.away_team : final.home_team;
+      if (bet.champion  && teamsMatch(bet.champion, championTeam)) total += POINTS.champion;
+      if (bet.runner_up && teamsMatch(bet.runner_up, runnerUpTeam)) total += POINTS.runner_up;
+    }
+    if (_scorers.length && bet.top_scorer) {
+      const topGoals = _scorers[0].goals;
+      const topScorers = _scorers.filter(s => s.goals === topGoals);
+      if (topScorers.some(s => scorerMatches(bet.top_scorer, s.player_name))) total += POINTS.top_scorer;
     }
   }
   return total;
