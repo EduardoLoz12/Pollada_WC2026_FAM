@@ -1192,10 +1192,26 @@ function loadMyPredictions() {
   }
 
   if (bet && (bet.champion || bet.runner_up || bet.top_scorer)) {
+    const final = _matches.find(m => m.stage === "FINAL" && m.status === "FINISHED" && m.winner && m.winner !== "DRAW");
+    const championTeam = final ? (final.winner === "HOME_TEAM" ? final.home_team : final.away_team) : null;
+    const runnerUpTeam = final ? (final.winner === "HOME_TEAM" ? final.away_team : final.home_team) : null;
+    const topGoals = _scorers.length ? _scorers[0].goals : null;
+    const topScorers = topGoals !== null ? _scorers.filter(s => s.goals === topGoals) : [];
+    const specialBadge = ok => `<div class="my-pred-status-group"><span class="my-pred-status ${ok ? "ok" : "no"}" title="Acertado">${ok ? "✅" : "❌"}</span></div>`;
+
     html += `<hr class="divider"><h3 style="font-size:.95rem;color:var(--gold);margin-bottom:8px">🌟 Apuestas Especiales</h3>`;
-    if (bet.champion)   html += `<div class="my-pred-row"><div class="my-pred-match">🏆 Campeón</div><div class="my-pred-pick">${flag(bet.champion)} ${esc(bet.champion)}</div></div>`;
-    if (bet.runner_up)  html += `<div class="my-pred-row"><div class="my-pred-match">🥈 Subcampeón</div><div class="my-pred-pick">${flag(bet.runner_up)} ${esc(bet.runner_up)}</div></div>`;
-    if (bet.top_scorer) html += `<div class="my-pred-row"><div class="my-pred-match">⚽ Goleador</div><div class="my-pred-pick">${esc(bet.top_scorer)}</div></div>`;
+    if (bet.champion) {
+      const badge = final ? specialBadge(teamsMatch(bet.champion, championTeam)) : "";
+      html += `<div class="my-pred-row"><div class="my-pred-match">🏆 Campeón</div><div class="my-pred-pick">${flag(bet.champion)} ${esc(bet.champion)}</div>${badge}</div>`;
+    }
+    if (bet.runner_up) {
+      const badge = final ? specialBadge(teamsMatch(bet.runner_up, runnerUpTeam)) : "";
+      html += `<div class="my-pred-row"><div class="my-pred-match">🥈 Subcampeón</div><div class="my-pred-pick">${flag(bet.runner_up)} ${esc(bet.runner_up)}</div>${badge}</div>`;
+    }
+    if (bet.top_scorer) {
+      const badge = topScorers.length ? specialBadge(topScorers.some(s => scorerMatches(bet.top_scorer, s.player_name))) : "";
+      html += `<div class="my-pred-row"><div class="my-pred-match">⚽ Goleador</div><div class="my-pred-pick">${esc(bet.top_scorer)}</div>${badge}</div>`;
+    }
   }
 
   body.innerHTML = html;
